@@ -3,7 +3,7 @@
 FlockFinder - Wigle Database Scanner for Flock Safety ALPR Cameras
 ================================================================
 Simple script to search Wigle database for Flock devices and filter by DFW area
-Outputs both JSON and Google My Maps compatible CSV with WKT geometry
+Outputs JSON, universal CSV, and KML formats for mapping platforms
 """
 
 ### IMPORTS ###
@@ -250,9 +250,10 @@ def search_wigle(params):
         print(f"Request failed: {e}")
         return None
 
-def create_google_maps_csv(networks, filename="flock_cameras_for_google_maps.csv"):
+def create_csv_export(networks, filename="flock_maps_import.csv"):
     """
-    Create a CSV file with WKT geometry format for Google My Maps import
+    Create a universal CSV file with WKT geometry format for mapping platforms
+    Compatible with Google My Maps, ArcGIS, QGIS, and other GIS software
     
     Args:
         networks (list): List of network records to export
@@ -262,18 +263,20 @@ def create_google_maps_csv(networks, filename="flock_cameras_for_google_maps.csv
         print("No networks to export to CSV")
         return
     
-    print(f"\nCreating Google Maps CSV with WKT geometry format...")
+    print(f"\nCreating universal CSV with WKT geometry format...")
     
-    # CSV headers for Google My Maps
+    # Universal CSV headers for mapping platforms
     csv_headers = [
         'Name',           # Display name for the marker
         'Description',    # Details shown in popup
-        'WKT',           # WKT geometry (POINT format) - REQUIRED for Google My Maps
+        'WKT',           # WKT geometry (POINT format) - Universal standard
         'SSID',          # Network SSID
         'BSSID',         # Network BSSID (MAC address)
         'City',          # City from our ZIP code dictionary
         'County',        # County from our ZIP code dictionary  
         'ZIP',           # ZIP code
+        'Latitude',      # Decimal degrees latitude
+        'Longitude',     # Decimal degrees longitude
         'First_Seen',    # First detection date
         'Last_Seen',     # Last detection date
         'Wigle_URL'      # Link to Wigle map
@@ -306,14 +309,7 @@ def create_google_maps_csv(networks, filename="flock_cameras_for_google_maps.csv
                 marker_name = f"Flock Camera - {city}"
                 
                 # Create description with key details
-                description = f"""Flock Safety ALPR Camera
-SSID: {ssid}
-BSSID: {bssid}
-Location: {city}, {county} County
-ZIP: {zip_code}
-Coordinates: {latitude}, {longitude}
-First Seen: {first_seen}
-Last Seen: {last_seen}"""
+                description = f"Flock Safety ALPR Camera - SSID: {ssid} - BSSID: {bssid} - Location: {city}, {county} County - ZIP: {zip_code}"
                 
                 # Write CSV row
                 writer.writerow({
@@ -325,24 +321,137 @@ Last Seen: {last_seen}"""
                     'City': city,
                     'County': county,
                     'ZIP': zip_code,
+                    'Latitude': latitude,
+                    'Longitude': longitude,
                     'First_Seen': first_seen,
                     'Last_Seen': last_seen,
                     'Wigle_URL': wigle_url
                 })
         
-        print(f"✓ Google Maps CSV created: {filename}")
+        print(f"✓ Universal CSV created: {filename}")
         print(f"✓ {len(networks)} camera locations exported")
-        print(f"✓ Ready for import to Google My Maps")
-        print(f"\nTo import to Google My Maps:")
-        print(f"1. Go to https://mymaps.google.com/")
-        print(f"2. Create a new map or open existing map") 
-        print(f"3. Click 'Add layer' -> 'Import'")
-        print(f"4. Upload the CSV file: {filename}")
-        print(f"5. Select 'WKT' column for positioning")
-        print(f"6. Customize markers and styling as desired")
+        print(f"✓ Compatible with Google My Maps, ArcGIS, QGIS, and other GIS platforms")
         
     except Exception as e:
         print(f"Error creating CSV file: {e}")
+
+def create_kml_export(networks, filename="flock_maps_import.kml"):
+    """
+    Create a KML file for universal mapping platform compatibility
+    Compatible with Google Earth, Google Maps, ArcGIS, QGIS, and other mapping software
+    
+    Args:
+        networks (list): List of network records to export
+        filename (str): Output KML filename
+    """
+    if not networks:
+        print("No networks to export to KML")
+        return
+    
+    print(f"\nCreating universal KML file...")
+    
+    try:
+        with open(filename, 'w', encoding='utf-8') as kmlfile:
+            # Write KML header
+            kmlfile.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+            kmlfile.write('<kml xmlns="http://www.opengis.net/kml/2.2">\n')
+            kmlfile.write('  <Document>\n')
+            kmlfile.write('    <name>Flock Safety ALPR Camera Locations</name>\n')
+            kmlfile.write('    <description>FlockFinder Project - Discovered Flock Safety camera locations in DFW Metroplex</description>\n')
+            
+            # Define shared style for all placemarks
+            kmlfile.write('    <Style id="flockCameraIcon">\n')
+            kmlfile.write('      <IconStyle>\n')
+            kmlfile.write('        <scale>1.2</scale>\n')
+            kmlfile.write('        <Icon>\n')
+            kmlfile.write('          <href>http://maps.google.com/mapfiles/kml/shapes/camera.png</href>\n')
+            kmlfile.write('        </Icon>\n')
+            kmlfile.write('        <color>ff0000ff</color>\n')  # Red color for visibility
+            kmlfile.write('      </IconStyle>\n')
+            kmlfile.write('      <LabelStyle>\n')
+            kmlfile.write('        <scale>0.8</scale>\n')
+            kmlfile.write('      </LabelStyle>\n')
+            kmlfile.write('    </Style>\n')
+            
+            # Create a placemark for each network
+            for network in networks:
+                # Extract data from network record
+                ssid = network.get('ssid', 'Unknown')
+                bssid = network.get('netid', 'Unknown')
+                latitude = network.get('trilat', 0)
+                longitude = network.get('trilong', 0)
+                zip_info = network.get('zip_info', {})
+                city = zip_info.get('city', 'Unknown')
+                county = zip_info.get('county', 'Unknown')
+                zip_code = network.get('postalcode', 'Unknown')
+                first_seen = network.get('firsttime', 'Unknown')
+                last_seen = network.get('lasttime', 'Unknown')
+                wigle_url = network.get('wigle_map_url', '')
+                
+                # Escape XML special characters in text content
+                def escape_xml(text):
+                    if not text or text == 'Unknown':
+                        return text
+                    return (str(text).replace('&', '&amp;')
+                                   .replace('<', '&lt;')
+                                   .replace('>', '&gt;')
+                                   .replace('"', '&quot;')
+                                   .replace("'", '&apos;'))
+                
+                # Create placemark name and description
+                placemark_name = escape_xml(f"Flock Camera - {city}")
+                
+                # Create detailed description with HTML formatting
+                description_html = f"""<![CDATA[
+<h3>Flock Safety ALPR Camera</h3>
+<table border="1" cellpadding="3">
+<tr><td><b>SSID:</b></td><td>{escape_xml(ssid)}</td></tr>
+<tr><td><b>BSSID:</b></td><td>{escape_xml(bssid)}</td></tr>
+<tr><td><b>Location:</b></td><td>{escape_xml(city)}, {escape_xml(county)} County</td></tr>
+<tr><td><b>ZIP Code:</b></td><td>{escape_xml(zip_code)}</td></tr>
+<tr><td><b>Coordinates:</b></td><td>{latitude}, {longitude}</td></tr>
+<tr><td><b>First Seen:</b></td><td>{escape_xml(first_seen)}</td></tr>
+<tr><td><b>Last Seen:</b></td><td>{escape_xml(last_seen)}</td></tr>
+<tr><td><b>Wigle Map:</b></td><td><a href="{wigle_url}">View on Wigle.net</a></td></tr>
+</table>
+<p><i>Discovered by FlockFinder Project</i></p>
+]]>"""
+                
+                # Write placemark KML
+                kmlfile.write('    <Placemark>\n')
+                kmlfile.write(f'      <name>{placemark_name}</name>\n')
+                kmlfile.write(f'      <description>{description_html}</description>\n')
+                kmlfile.write('      <styleUrl>#flockCameraIcon</styleUrl>\n')
+                kmlfile.write('      <Point>\n')
+                kmlfile.write(f'        <coordinates>{longitude},{latitude},0</coordinates>\n')
+                kmlfile.write('      </Point>\n')
+                
+                # Add extended data for compatibility with GIS software
+                kmlfile.write('      <ExtendedData>\n')
+                kmlfile.write(f'        <Data name="SSID"><value>{escape_xml(ssid)}</value></Data>\n')
+                kmlfile.write(f'        <Data name="BSSID"><value>{escape_xml(bssid)}</value></Data>\n')
+                kmlfile.write(f'        <Data name="City"><value>{escape_xml(city)}</value></Data>\n')
+                kmlfile.write(f'        <Data name="County"><value>{escape_xml(county)}</value></Data>\n')
+                kmlfile.write(f'        <Data name="ZIP"><value>{escape_xml(zip_code)}</value></Data>\n')
+                kmlfile.write(f'        <Data name="Latitude"><value>{latitude}</value></Data>\n')
+                kmlfile.write(f'        <Data name="Longitude"><value>{longitude}</value></Data>\n')
+                kmlfile.write(f'        <Data name="First_Seen"><value>{escape_xml(first_seen)}</value></Data>\n')
+                kmlfile.write(f'        <Data name="Last_Seen"><value>{escape_xml(last_seen)}</value></Data>\n')
+                kmlfile.write(f'        <Data name="Wigle_URL"><value>{wigle_url}</value></Data>\n')
+                kmlfile.write('      </ExtendedData>\n')
+                
+                kmlfile.write('    </Placemark>\n')
+            
+            # Close KML document
+            kmlfile.write('  </Document>\n')
+            kmlfile.write('</kml>\n')
+        
+        print(f"✓ Universal KML created: {filename}")
+        print(f"✓ {len(networks)} camera locations exported")
+        print(f"✓ Compatible with Google Earth, Google Maps, ArcGIS, QGIS, and other mapping platforms")
+        
+    except Exception as e:
+        print(f"Error creating KML file: {e}")
 
 def main():
     print("FlockFinder - Wigle Database Scanner")
@@ -446,13 +555,26 @@ def main():
     
     print(f"\n📄 Results saved to: flock_results_filtered.json")
     
-    # Step 7: Create Google My Maps CSV with WKT geometry format
-    create_google_maps_csv(final_filtered)
+    # Step 7: Create universal CSV and KML exports for mapping platforms
+    create_csv_export(final_filtered)
+    create_kml_export(final_filtered)
     
     # Final summary
     print(f"\n🎯 FINAL SUMMARY:")
     print(f"Final count: {len(final_filtered)} Flock networks found in DFW Metroplex")
     print(f"Coverage area: {len(ZIPCODES)} ZIP codes across Dallas, Tarrant, Collin, Denton, and Rockwall counties")
+    
+    # Output files summary
+    print(f"\n📁 OUTPUT FILES CREATED:")
+    print(f"  • flock_results_filtered.json - Complete data with metadata")
+    print(f"  • flock_maps_import.csv - Universal CSV with WKT geometry")
+    print(f"  • flock_maps_import.kml - Universal KML for mapping platforms")
+    print(f"\n🗺️  COMPATIBLE MAPPING PLATFORMS:")
+    print(f"  • Google My Maps / Google Earth")
+    print(f"  • ArcGIS / ArcGIS Online")
+    print(f"  • QGIS (Free & Open Source)")
+    print(f"  • MapBox / Leaflet")
+    print(f"  • Any GIS software supporting WKT or KML formats")
     
     # Summary statistics by county
     county_stats = {}
