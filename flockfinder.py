@@ -3,9 +3,11 @@
 FlockFinder - Wigle Database Scanner for Flock Safety ALPR Cameras
 ================================================================
 Simple script to search Wigle database for Flock devices and filter by DFW area
+Outputs both JSON and Google My Maps compatible CSV with WKT geometry
 """
 
 ### IMPORTS ###
+import csv
 import getpass
 import json
 import os
@@ -248,6 +250,100 @@ def search_wigle(params):
         print(f"Request failed: {e}")
         return None
 
+def create_google_maps_csv(networks, filename="flock_cameras_for_google_maps.csv"):
+    """
+    Create a CSV file with WKT geometry format for Google My Maps import
+    
+    Args:
+        networks (list): List of network records to export
+        filename (str): Output CSV filename
+    """
+    if not networks:
+        print("No networks to export to CSV")
+        return
+    
+    print(f"\nCreating Google Maps CSV with WKT geometry format...")
+    
+    # CSV headers for Google My Maps
+    csv_headers = [
+        'Name',           # Display name for the marker
+        'Description',    # Details shown in popup
+        'WKT',           # WKT geometry (POINT format) - REQUIRED for Google My Maps
+        'SSID',          # Network SSID
+        'BSSID',         # Network BSSID (MAC address)
+        'City',          # City from our ZIP code dictionary
+        'County',        # County from our ZIP code dictionary  
+        'ZIP',           # ZIP code
+        'First_Seen',    # First detection date
+        'Last_Seen',     # Last detection date
+        'Wigle_URL'      # Link to Wigle map
+    ]
+    
+    try:
+        with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=csv_headers)
+            writer.writeheader()
+            
+            for network in networks:
+                # Extract data from network record
+                ssid = network.get('ssid', 'Unknown')
+                bssid = network.get('netid', 'Unknown')
+                latitude = network.get('trilat', 0)
+                longitude = network.get('trilong', 0)
+                zip_info = network.get('zip_info', {})
+                city = zip_info.get('city', 'Unknown')
+                county = zip_info.get('county', 'Unknown')
+                zip_code = network.get('postalcode', 'Unknown')
+                first_seen = network.get('firsttime', 'Unknown')
+                last_seen = network.get('lasttime', 'Unknown')
+                wigle_url = network.get('wigle_map_url', '')
+                
+                # Create WKT POINT geometry - format: POINT(longitude latitude)
+                # Note: WKT uses longitude first, then latitude (opposite of lat,lon)
+                wkt_point = f"POINT({longitude} {latitude})"
+                
+                # Create display name for the marker
+                marker_name = f"Flock Camera - {city}"
+                
+                # Create description with key details
+                description = f"""Flock Safety ALPR Camera
+SSID: {ssid}
+BSSID: {bssid}
+Location: {city}, {county} County
+ZIP: {zip_code}
+Coordinates: {latitude}, {longitude}
+First Seen: {first_seen}
+Last Seen: {last_seen}"""
+                
+                # Write CSV row
+                writer.writerow({
+                    'Name': marker_name,
+                    'Description': description,
+                    'WKT': wkt_point,
+                    'SSID': ssid,
+                    'BSSID': bssid,
+                    'City': city,
+                    'County': county,
+                    'ZIP': zip_code,
+                    'First_Seen': first_seen,
+                    'Last_Seen': last_seen,
+                    'Wigle_URL': wigle_url
+                })
+        
+        print(f"✓ Google Maps CSV created: {filename}")
+        print(f"✓ {len(networks)} camera locations exported")
+        print(f"✓ Ready for import to Google My Maps")
+        print(f"\nTo import to Google My Maps:")
+        print(f"1. Go to https://mymaps.google.com/")
+        print(f"2. Create a new map or open existing map") 
+        print(f"3. Click 'Add layer' -> 'Import'")
+        print(f"4. Upload the CSV file: {filename}")
+        print(f"5. Select 'WKT' column for positioning")
+        print(f"6. Customize markers and styling as desired")
+        
+    except Exception as e:
+        print(f"Error creating CSV file: {e}")
+
 def main():
     print("FlockFinder - Wigle Database Scanner")
     print("===================================")
@@ -344,10 +440,17 @@ def main():
         'networks': final_filtered
     }
     
+    # Save JSON results
     with open('flock_results_filtered.json', 'w') as f:
         json.dump(output_data, f, indent=2)
     
-    print(f"\nResults saved to: flock_results_filtered.json")
+    print(f"\n📄 Results saved to: flock_results_filtered.json")
+    
+    # Step 7: Create Google My Maps CSV with WKT geometry format
+    create_google_maps_csv(final_filtered)
+    
+    # Final summary
+    print(f"\n🎯 FINAL SUMMARY:")
     print(f"Final count: {len(final_filtered)} Flock networks found in DFW Metroplex")
     print(f"Coverage area: {len(ZIPCODES)} ZIP codes across Dallas, Tarrant, Collin, Denton, and Rockwall counties")
     
