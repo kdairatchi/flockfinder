@@ -1,0 +1,23 @@
+{
+  "state": "Texas",
+  "state_code": "TX",
+  "county": "Austin",
+  "county_fips": "48015",
+  "description": "ZIP codes for Austin County, Texas (Houston metropolitan area)",
+  "last_updated": "2025-01-10",
+  "source": "FlockFinder Project ZIP code research",
+  "zip_codes": {
+    "77414": {"city": "Bellville", "type": "primary"},
+    "77418": {"city": "Brazos Country", "type": "primary"},
+    "77423": {"city": "Brookshire", "type": "primary"},
+    "77435": {"city": "Industry", "type": "primary"},
+    "77442": {"city": "Sealy", "type": "primary"},
+    "77456": {"city": "New Ulm", "type": "primary"},
+    "77872": {"city": "Pattison", "type": "primary"},
+    "77954": {"city": "Bellville", "type": "primary"},
+    "77961": {"city": "Cat Spring", "type": "primary"},
+    "77963": {"city": "Frydek", "type": "primary"},
+    "77968": {"city": "Kenney", "type": "primary"},
+    "77995": {"city": "Wallis", "type": "primary"}
+  }
+}

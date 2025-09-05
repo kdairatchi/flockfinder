@@ -1,0 +1,26 @@
+{
+  "state": "Texas",
+  "state_code": "TX",
+  "county": "Liberty",
+  "county_fips": "48291",
+  "description": "ZIP codes for Liberty County, Texas (Houston metropolitan area)",
+  "last_updated": "2025-01-10",
+  "source": "FlockFinder Project ZIP code research",
+  "zip_codes": {
+    "77327": {"city": "Cleveland", "type": "primary"},
+    "77328": {"city": "Cleveland", "type": "primary"},
+    "77331": {"city": "Dayton", "type": "primary"},
+    "77334": {"city": "Dayton", "type": "primary"},
+    "77335": {"city": "Devers", "type": "primary"},
+    "77351": {"city": "Hull", "type": "primary"},
+    "77353": {"city": "Liberty", "type": "primary"},
+    "77357": {"city": "Liberty", "type": "primary"},
+    "77358": {"city": "New Waverly", "type": "primary"},
+    "77364": {"city": "Plum Grove", "type": "primary"},
+    "77365": {"city": "Porter", "type": "primary"},
+    "77368": {"city": "Romayor", "type": "primary"},
+    "77369": {"city": "Splendora", "type": "primary"},
+    "77575": {"city": "Moss Bluff", "type": "primary"},
+    "77622": {"city": "Cove", "type": "primary"}
+  }
+}

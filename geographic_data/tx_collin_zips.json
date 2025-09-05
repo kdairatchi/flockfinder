@@ -1,0 +1,33 @@
+{
+  "state": "Texas",
+  "state_code": "TX",
+  "county": "Collin",
+  "county_fips": "48085",
+  "description": "ZIP codes for Collin County, Texas",
+  "last_updated": "2025-01-10",
+  "source": "FlockFinder Project ZIP code research",
+  "zip_codes": {
+    "75009": {"city": "Celina", "type": "primary"},
+    "75013": {"city": "Allen", "type": "primary"},
+    "75023": {"city": "Plano", "type": "primary"},
+    "75024": {"city": "Plano", "type": "primary"},
+    "75025": {"city": "Plano", "type": "primary"},
+    "75034": {"city": "Frisco", "type": "primary"},
+    "75035": {"city": "Frisco", "type": "primary"},
+    "75069": {"city": "McKinney", "type": "primary"},
+    "75070": {"city": "McKinney", "type": "primary"},
+    "75071": {"city": "McKinney", "type": "primary"},
+    "75072": {"city": "McKinney", "type": "primary"},
+    "75074": {"city": "Plano", "type": "primary"},
+    "75075": {"city": "Plano", "type": "primary"},
+    "75078": {"city": "Plano", "type": "primary"},
+    "75080": {"city": "Richardson", "type": "primary"},
+    "75081": {"city": "Richardson", "type": "primary"},
+    "75082": {"city": "Richardson", "type": "primary"},
+    "75086": {"city": "Plano", "type": "primary"},
+    "75093": {"city": "Plano", "type": "primary"},
+    "75094": {"city": "Plano", "type": "primary"},
+    "75098": {"city": "Wylie", "type": "primary"},
+    "76078": {"city": "Prosper", "type": "primary"}
+  }
+}

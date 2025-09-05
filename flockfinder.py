@@ -2,7 +2,7 @@
 """
 FlockFinder - Wigle Database Scanner for Flock Safety ALPR Cameras
 ================================================================
-Simple script to search Wigle database for Flock devices and filter by DFW area
+Modular script with geographic region selection and external data files
 Outputs JSON, universal CSV, and KML formats for mapping platforms
 """
 
@@ -29,212 +29,219 @@ HEADER = {"Authorization": "Basic " + TOKEN}
 BASEURL = 'https://api.wigle.net'
 API = '/api/v2/network/search'
 
-# Known Flock device BSSID prefixes (first 3 octets)
-BSSIDS = ["00:F4:8D", "08:3A:88", "14:5A:FC", "3C:91:80", "62:DD:4C", "70:C9:4E", 
-          "74:4C:A1", "80:30:49", "86:A2:F4", "92:B7:DD", "94:08:53", "9C:2F:9D", 
-          "A2:A2:F4", "A6:A2:F4", "B8:27:EB", "C0:C9:E3", "D0:39:57", "D8:F3:BC", 
-          "E0:0A:F6", "E4:AA:EA", "E4:C3:2A", "E6:F4:C6", "E8:D0:FC", "F4:6A:DD", 
-          "F6:7F:D7", "F8:A2:D6"]
-
-# DFW Metroplex ZIP codes with corresponding cities and counties
-ZIPCODES = {
-    # Original North Dallas ZIP codes
-    "75007": {"city": "Carrollton", "county": "Dallas"},
-    "75009": {"city": "Celina", "county": "Collin"},
-    "75010": {"city": "Carrollton", "county": "Denton"},
-    "75019": {"city": "Coppell", "county": "Dallas"},
-    "75022": {"city": "Flower Mound", "county": "Denton"},
-    "75024": {"city": "Plano", "county": "Collin"},
-    "75028": {"city": "Flower Mound", "county": "Denton"},
-    "75034": {"city": "Frisco", "county": "Collin"},
-    "75056": {"city": "The Colony", "county": "Denton"},
-    "75057": {"city": "Lewisville", "county": "Denton"},
-    "75065": {"city": "Lake Dallas", "county": "Denton"},
-    "75067": {"city": "Lewisville", "county": "Denton"},
-    "75068": {"city": "Little Elm", "county": "Denton"},
-    "75077": {"city": "Lewisville", "county": "Denton"},
-    "75078": {"city": "Plano", "county": "Collin"},
-    "75093": {"city": "Plano", "county": "Collin"},
-    "75287": {"city": "Dallas", "county": "Dallas"},
-    "76052": {"city": "Haslet", "county": "Tarrant"},
-    "76078": {"city": "Prosper", "county": "Collin"},
-    "76092": {"city": "Southlake", "county": "Tarrant"},
-    "76177": {"city": "Fort Worth", "county": "Tarrant"},
-    "76201": {"city": "Denton", "county": "Denton"},
-    "76205": {"city": "Denton", "county": "Denton"},
-    "76207": {"city": "Denton", "county": "Denton"},
-    "76208": {"city": "Denton", "county": "Denton"},
-    "76209": {"city": "Denton", "county": "Denton"},
-    "76210": {"city": "Denton", "county": "Denton"},
-    "76226": {"city": "Krum", "county": "Denton"},
-    "76227": {"city": "Roanoke", "county": "Denton"},
-    "76234": {"city": "Decatur", "county": "Wise"},
-    "76247": {"city": "Justin", "county": "Denton"},
-    "76249": {"city": "Keller", "county": "Tarrant"},
-    "76258": {"city": "Trophy Club", "county": "Denton"},
-    "76259": {"city": "Ponder", "county": "Denton"},
-    "76262": {"city": "Westlake", "county": "Tarrant"},
-    "76266": {"city": "Lewisville", "county": "Denton"},
-    "76272": {"city": "Sanger", "county": "Denton"},
-    
-    # Additional Dallas County ZIP codes
-    "75201": {"city": "Dallas", "county": "Dallas"},
-    "75202": {"city": "Dallas", "county": "Dallas"},
-    "75203": {"city": "Dallas", "county": "Dallas"},
-    "75204": {"city": "Dallas", "county": "Dallas"},
-    "75205": {"city": "Highland Park", "county": "Dallas"},
-    "75206": {"city": "Dallas", "county": "Dallas"},
-    "75207": {"city": "Dallas", "county": "Dallas"},
-    "75208": {"city": "Dallas", "county": "Dallas"},
-    "75209": {"city": "Dallas", "county": "Dallas"},
-    "75210": {"city": "Dallas", "county": "Dallas"},
-    "75211": {"city": "Dallas", "county": "Dallas"},
-    "75212": {"city": "Dallas", "county": "Dallas"},
-    "75214": {"city": "Dallas", "county": "Dallas"},
-    "75215": {"city": "Dallas", "county": "Dallas"},
-    "75216": {"city": "Dallas", "county": "Dallas"},
-    "75217": {"city": "Dallas", "county": "Dallas"},
-    "75218": {"city": "Dallas", "county": "Dallas"},
-    "75219": {"city": "Dallas", "county": "Dallas"},
-    "75220": {"city": "Dallas", "county": "Dallas"},
-    "75221": {"city": "Dallas", "county": "Dallas"},
-    "75222": {"city": "Dallas", "county": "Dallas"},
-    "75223": {"city": "Dallas", "county": "Dallas"},
-    "75224": {"city": "Dallas", "county": "Dallas"},
-    "75225": {"city": "Dallas", "county": "Dallas"},
-    "75226": {"city": "Dallas", "county": "Dallas"},
-    "75227": {"city": "Dallas", "county": "Dallas"},
-    "75228": {"city": "Dallas", "county": "Dallas"},
-    "75229": {"city": "Dallas", "county": "Dallas"},
-    "75230": {"city": "Dallas", "county": "Dallas"},
-    "75231": {"city": "Dallas", "county": "Dallas"},
-    "75232": {"city": "Dallas", "county": "Dallas"},
-    "75233": {"city": "Dallas", "county": "Dallas"},
-    "75234": {"city": "Dallas", "county": "Dallas"},
-    "75235": {"city": "Dallas", "county": "Dallas"},
-    "75236": {"city": "Dallas", "county": "Dallas"},
-    "75237": {"city": "Dallas", "county": "Dallas"},
-    "75238": {"city": "Dallas", "county": "Dallas"},
-    "75240": {"city": "Dallas", "county": "Dallas"},
-    "75241": {"city": "Dallas", "county": "Dallas"},
-    "75243": {"city": "Dallas", "county": "Dallas"},
-    "75244": {"city": "Dallas", "county": "Dallas"},
-    "75246": {"city": "Dallas", "county": "Dallas"},
-    "75247": {"city": "Dallas", "county": "Dallas"},
-    "75248": {"city": "Dallas", "county": "Dallas"},
-    "75249": {"city": "Dallas", "county": "Dallas"},
-    "75250": {"city": "Dallas", "county": "Dallas"},
-    "75251": {"city": "Dallas", "county": "Dallas"},
-    "75252": {"city": "Dallas", "county": "Dallas"},
-    
-    # Collin County ZIP codes
-    "75013": {"city": "Allen", "county": "Collin"},
-    "75023": {"city": "Plano", "county": "Collin"},
-    "75025": {"city": "Plano", "county": "Collin"},
-    "75035": {"city": "Frisco", "county": "Collin"},
-    "75069": {"city": "McKinney", "county": "Collin"},
-    "75070": {"city": "McKinney", "county": "Collin"},
-    "75071": {"city": "McKinney", "county": "Collin"},
-    "75072": {"city": "McKinney", "county": "Collin"},
-    "75074": {"city": "Plano", "county": "Collin"},
-    "75075": {"city": "Plano", "county": "Collin"},
-    "75080": {"city": "Richardson", "county": "Collin"},
-    "75081": {"city": "Richardson", "county": "Collin"},
-    "75082": {"city": "Richardson", "county": "Collin"},
-    "75085": {"city": "Richardson", "county": "Dallas"},
-    "75086": {"city": "Plano", "county": "Collin"},
-    "75087": {"city": "Rockwall", "county": "Rockwall"},
-    "75094": {"city": "Plano", "county": "Collin"},
-    "75098": {"city": "Wylie", "county": "Collin"},
-    "75166": {"city": "Rockwall", "county": "Rockwall"},
-    "75169": {"city": "Royse City", "county": "Rockwall"},
-    
-    # Tarrant County ZIP codes (Fort Worth area)
-    "76001": {"city": "Arlington", "county": "Tarrant"},
-    "76002": {"city": "Arlington", "county": "Tarrant"},
-    "76003": {"city": "Arlington", "county": "Tarrant"},
-    "76004": {"city": "Arlington", "county": "Tarrant"},
-    "76005": {"city": "Arlington", "county": "Tarrant"},
-    "76006": {"city": "Arlington", "county": "Tarrant"},
-    "76007": {"city": "Arlington", "county": "Tarrant"},
-    "76008": {"city": "Arlington", "county": "Tarrant"},
-    "76010": {"city": "Arlington", "county": "Tarrant"},
-    "76011": {"city": "Arlington", "county": "Tarrant"},
-    "76012": {"city": "Arlington", "county": "Tarrant"},
-    "76013": {"city": "Arlington", "county": "Tarrant"},
-    "76014": {"city": "Arlington", "county": "Tarrant"},
-    "76015": {"city": "Arlington", "county": "Tarrant"},
-    "76016": {"city": "Arlington", "county": "Tarrant"},
-    "76017": {"city": "Arlington", "county": "Tarrant"},
-    "76018": {"city": "Arlington", "county": "Tarrant"},
-    "76019": {"city": "Arlington", "county": "Tarrant"},
-    "76020": {"city": "Azle", "county": "Tarrant"},
-    "76021": {"city": "Bedford", "county": "Tarrant"},
-    "76022": {"city": "Bedford", "county": "Tarrant"},
-    "76028": {"city": "Burleson", "county": "Tarrant"},
-    "76034": {"city": "Crowley", "county": "Tarrant"},
-    "76039": {"city": "Euless", "county": "Tarrant"},
-    "76040": {"city": "Euless", "county": "Tarrant"},
-    "76051": {"city": "Grapevine", "county": "Tarrant"},
-    "76054": {"city": "Hurst", "county": "Tarrant"},
-    "76101": {"city": "Fort Worth", "county": "Tarrant"},
-    "76102": {"city": "Fort Worth", "county": "Tarrant"},
-    "76103": {"city": "Fort Worth", "county": "Tarrant"},
-    "76104": {"city": "Fort Worth", "county": "Tarrant"},
-    "76105": {"city": "Fort Worth", "county": "Tarrant"},
-    "76106": {"city": "Fort Worth", "county": "Tarrant"},
-    "76107": {"city": "Fort Worth", "county": "Tarrant"},
-    "76108": {"city": "Fort Worth", "county": "Tarrant"},
-    "76109": {"city": "Fort Worth", "county": "Tarrant"},
-    "76110": {"city": "Fort Worth", "county": "Tarrant"},
-    "76111": {"city": "Fort Worth", "county": "Tarrant"},
-    "76112": {"city": "Fort Worth", "county": "Tarrant"},
-    "76114": {"city": "Fort Worth", "county": "Tarrant"},
-    "76115": {"city": "Fort Worth", "county": "Tarrant"},
-    "76116": {"city": "Fort Worth", "county": "Tarrant"},
-    "76117": {"city": "Fort Worth", "county": "Tarrant"},
-    "76118": {"city": "Fort Worth", "county": "Tarrant"},
-    "76119": {"city": "Fort Worth", "county": "Tarrant"},
-    "76120": {"city": "Fort Worth", "county": "Tarrant"},
-    "76121": {"city": "Fort Worth", "county": "Tarrant"},
-    "76122": {"city": "Fort Worth", "county": "Tarrant"},
-    "76123": {"city": "Fort Worth", "county": "Tarrant"},
-    "76124": {"city": "Fort Worth", "county": "Tarrant"},
-    "76126": {"city": "Fort Worth", "county": "Tarrant"},
-    "76127": {"city": "Fort Worth", "county": "Tarrant"},
-    "76129": {"city": "Fort Worth", "county": "Tarrant"},
-    "76131": {"city": "Fort Worth", "county": "Tarrant"},
-    "76132": {"city": "Fort Worth", "county": "Tarrant"},
-    "76133": {"city": "Fort Worth", "county": "Tarrant"},
-    "76134": {"city": "Fort Worth", "county": "Tarrant"},
-    "76135": {"city": "Fort Worth", "county": "Tarrant"},
-    "76136": {"city": "Fort Worth", "county": "Tarrant"},
-    "76137": {"city": "Fort Worth", "county": "Tarrant"},
-    "76140": {"city": "Fort Worth", "county": "Tarrant"},
-    "76148": {"city": "Fort Worth", "county": "Tarrant"},
-    "76155": {"city": "Fort Worth", "county": "Tarrant"},
-    "76179": {"city": "Fort Worth", "county": "Tarrant"},
-    "76180": {"city": "North Richland Hills", "county": "Tarrant"},
-    "76182": {"city": "North Richland Hills", "county": "Tarrant"},
-    
-    # Additional surrounding areas
-    "75101": {"city": "Bardwell", "county": "Ellis"},
-    "75104": {"city": "Cedar Hill", "county": "Dallas"},
-    "75115": {"city": "DeSoto", "county": "Dallas"},
-    "75116": {"city": "Duncanville", "county": "Dallas"},
-    "75134": {"city": "Lancaster", "county": "Dallas"},
-    "75149": {"city": "Mesquite", "county": "Dallas"},
-    "75150": {"city": "Mesquite", "county": "Dallas"},
-    "75154": {"city": "Red Oak", "county": "Ellis"},
-    "75180": {"city": "Garland", "county": "Dallas"},
-    "75181": {"city": "Garland", "county": "Dallas"},
-    "75182": {"city": "Garland", "county": "Dallas"},
-    "75183": {"city": "Garland", "county": "Dallas"},
-    "75184": {"city": "Garland", "county": "Dallas"},
-    "75185": {"city": "Garland", "county": "Dallas"},
-}
+# Data loaded from external JSON files
+BSSIDS = []      # Will be populated from known_bssid_prefixes.json
+ZIPCODES = {}    # Will be populated from selected county files
 
 ### FUNCTIONS ###
+
+def load_bssid_prefixes(filename="known_bssid_prefixes.json"):
+    """
+    Load known BSSID prefixes from external JSON file
+    
+    Args:
+        filename (str): JSON file containing BSSID prefixes
+        
+    Returns:
+        list: List of BSSID prefixes (first 3 octets)
+    """
+    try:
+        # Try to load existing file
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                bssid_list = data.get('bssid_prefixes', [])
+                
+                if not bssid_list:
+                    print(f"❌ No BSSID prefixes found in {filename}")
+                    print(f"Please add BSSID prefixes to the 'bssid_prefixes' array in the file")
+                    return []
+                
+                print(f"✓ Loaded {len(bssid_list)} BSSID prefixes from {filename}")
+                return bssid_list
+        else:
+            print(f"❌ Required file not found: {filename}")
+            print(f"Please create {filename} with known Flock Safety BSSID prefixes")
+            print(f"See documentation for the correct JSON format")
+            return []
+            
+    except json.JSONDecodeError as e:
+        print(f"❌ Error parsing {filename}: {e}")
+        print(f"Please check the JSON format in {filename}")
+        return []
+    except Exception as e:
+        print(f"❌ Error loading {filename}: {e}")
+        return []
+
+def load_geographic_registry(filename="geographic_registry.json"):
+    """
+    Load the geographic registry containing available states and counties
+    
+    Args:
+        filename (str): Geographic registry JSON file
+        
+    Returns:
+        dict: Geographic registry data
+    """
+    try:
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        else:
+            print(f"❌ Geographic registry not found: {filename}")
+            print("Please create the geographic registry file. See documentation for format.")
+            return None
+    except Exception as e:
+        print(f"❌ Error loading geographic registry: {e}")
+        return None
+
+def load_county_zipcode_data(file_path):
+    """
+    Load ZIP code data from a county-specific JSON file
+    
+    Args:
+        file_path (str): Path to county ZIP code JSON file
+        
+    Returns:
+        dict: ZIP code data with city/county mappings
+    """
+    try:
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                county_data = json.load(f)
+                zip_dict = {}
+                county_name = county_data.get('county', 'Unknown')
+                
+                # Convert county JSON format to our internal format
+                for zip_code, zip_info in county_data.get('zip_codes', {}).items():
+                    zip_dict[zip_code] = {
+                        'city': zip_info.get('city', 'Unknown'),
+                        'county': county_name
+                    }
+                
+                print(f"✓ Loaded {len(zip_dict)} ZIP codes from {county_name} County")
+                return zip_dict
+        else:
+            print(f"❌ County file not found: {file_path}")
+            return {}
+    except Exception as e:
+        print(f"❌ Error loading county data from {file_path}: {e}")
+        return {}
+
+def select_geographic_regions():
+    """
+    Interactive geographic region selection interface
+    
+    Returns:
+        tuple: (combined ZIP code dictionary, state_code for API)
+    """
+    print("\n" + "="*60)
+    print("GEOGRAPHIC REGION SELECTION")
+    print("="*60)
+    
+    # Load geographic registry
+    registry = load_geographic_registry()
+    if not registry:
+        print("❌ Cannot load geographic registry.")
+        return {}, None
+    
+    available_regions = registry.get('available_regions', {})
+    if not available_regions:
+        print("❌ No geographic regions available in registry.")
+        return {}, None
+    
+    # Step 1: Select State
+    print("\nAvailable States:")
+    states = sorted(available_regions.keys())
+    for i, state in enumerate(states, 1):
+        state_info = available_regions[state]
+        county_count = len(state_info.get('counties', {}))
+        print(f"  {i}. {state} ({state_info.get('state_code', 'N/A')}) - {county_count} counties")
+    
+    while True:
+        try:
+            state_choice = input(f"\nSelect state (1-{len(states)}) or 'q' to quit: ").strip()
+            if state_choice.lower() == 'q':
+                print("Exiting...")
+                sys.exit(0)
+            
+            state_idx = int(state_choice) - 1
+            if 0 <= state_idx < len(states):
+                selected_state = states[state_idx]
+                break
+            else:
+                print(f"❌ Please enter a number between 1 and {len(states)}")
+        except ValueError:
+            print("❌ Please enter a valid number or 'q' to quit")
+    
+    print(f"\n✓ Selected state: {selected_state}")
+    
+    # Get state code for API
+    state_data = available_regions[selected_state]
+    state_code = state_data.get('state_code', 'TX')
+    
+    # Step 2: Select Counties
+    counties = sorted(state_data.get('counties', {}).keys())
+    
+    print(f"\nAvailable Counties in {selected_state}:")
+    for i, county in enumerate(counties, 1):
+        county_info = state_data['counties'][county]
+        zip_count = county_info.get('zip_count', 0)
+        major_cities = ", ".join(county_info.get('major_cities', [])[:3])
+        print(f"  {i}. {county} County - {zip_count} ZIP codes ({major_cities})")
+    
+    print(f"\n  {len(counties) + 1}. All counties (entire state)")
+    
+    while True:
+        try:
+            county_input = input(f"\nSelect counties (1-{len(counties) + 1}), multiple separated by commas, or 'q' to quit: ").strip()
+            if county_input.lower() == 'q':
+                print("Exiting...")
+                sys.exit(0)
+            
+            # Handle "all counties" selection
+            if county_input == str(len(counties) + 1):
+                selected_counties = counties
+                break
+            
+            # Handle multiple county selection
+            county_choices = [int(x.strip()) - 1 for x in county_input.split(',')]
+            selected_counties = []
+            
+            for choice in county_choices:
+                if 0 <= choice < len(counties):
+                    selected_counties.append(counties[choice])
+                else:
+                    raise ValueError(f"Invalid county selection: {choice + 1}")
+            
+            if selected_counties:
+                break
+            else:
+                print("❌ No valid counties selected")
+                
+        except ValueError as e:
+            print(f"❌ {e}. Please enter valid numbers separated by commas")
+    
+    print(f"\n✓ Selected counties: {', '.join(selected_counties)}")
+    
+    # Step 3: Load ZIP code data from selected counties
+    print(f"\nLoading ZIP code data...")
+    combined_zipcodes = {}
+    
+    for county in selected_counties:
+        county_info = state_data['counties'][county]
+        file_path = county_info.get('file', '')
+        
+        if file_path:
+            county_zips = load_county_zipcode_data(file_path)
+            combined_zipcodes.update(county_zips)
+        else:
+            print(f"⚠️  No file path specified for {county} County")
+    
+    print(f"\n✓ Total ZIP codes loaded: {len(combined_zipcodes)}")
+    print(f"✓ Coverage: {', '.join(selected_counties)} County/Counties, {selected_state}")
+    
+    return combined_zipcodes, state_code
 
 def search_wigle(params):
     """Simple function to make Wigle API request"""
@@ -356,8 +363,8 @@ def create_kml_export(networks, filename="flock_maps_import.kml"):
             kmlfile.write('<?xml version="1.0" encoding="UTF-8"?>\n')
             kmlfile.write('<kml xmlns="http://www.opengis.net/kml/2.2">\n')
             kmlfile.write('  <Document>\n')
-            kmlfile.write('    <name>Flock Safety ALPR Camera Locations</name>\n')
-            kmlfile.write('    <description>FlockFinder Project - Discovered Flock Safety camera locations in DFW Metroplex</description>\n')
+            kmlfile.write('    <n>Flock Safety ALPR Camera Locations</n>\n')
+            kmlfile.write('    <description>FlockFinder Project - Discovered Flock Safety camera locations</description>\n')
             
             # Define shared style for all placemarks
             kmlfile.write('    <Style id="flockCameraIcon">\n')
@@ -419,7 +426,7 @@ def create_kml_export(networks, filename="flock_maps_import.kml"):
                 
                 # Write placemark KML
                 kmlfile.write('    <Placemark>\n')
-                kmlfile.write(f'      <name>{placemark_name}</name>\n')
+                kmlfile.write(f'      <n>{placemark_name}</n>\n')
                 kmlfile.write(f'      <description>{description_html}</description>\n')
                 kmlfile.write('      <styleUrl>#flockCameraIcon</styleUrl>\n')
                 kmlfile.write('      <Point>\n')
@@ -454,19 +461,42 @@ def create_kml_export(networks, filename="flock_maps_import.kml"):
         print(f"Error creating KML file: {e}")
 
 def main():
+    global BSSIDS, ZIPCODES
+    
     print("FlockFinder - Wigle Database Scanner")
     print("===================================")
-    print(f"Searching for Flock devices in Texas...")
-    print(f"Known BSSID prefixes: {len(BSSIDS)}")
-    print(f"DFW area ZIP codes: {len(ZIPCODES)}")
     
-    # Broader search: Get all flock networks in TX, then filter locally
+    # Load BSSID prefixes from external JSON file
+    BSSIDS = load_bssid_prefixes()
+    
+    if not BSSIDS:
+        print("❌ No BSSID prefixes loaded. Cannot proceed with search.")
+        print("Please create or fix the known_bssid_prefixes.json file")
+        return
+    
+    # Interactive geographic region selection
+    ZIPCODES, state_code = select_geographic_regions()
+    
+    if not ZIPCODES:
+        print("❌ No ZIP codes loaded. Cannot proceed with search.")
+        return
+    
+    if not state_code:
+        print("❌ No state code determined. Cannot proceed with search.")
+        return
+    
+    print(f"\nSearching for Flock devices...")
+    print(f"Known BSSID prefixes loaded: {len(BSSIDS)}")
+    print(f"Geographic coverage: {len(ZIPCODES)} ZIP codes")
+    print(f"Using region filter: {state_code}")
+    
+    # Broader search: Get all flock networks in selected state, then filter locally
     params = {
         'ssidlike': 'flock-%',
-        'region': 'TX'
+        'region': state_code
     }
     
-    print("\nStep 1: Broad flock SSID search in TX...")
+    print("\nStep 1: Broad flock SSID search...")
     result = search_wigle(params)
     
     if not result or not result.get('success'):
@@ -491,13 +521,13 @@ def main():
     
     print(f"After BSSID filtering: {len(bssid_filtered)} networks")
     
-    # Step 3: Filter by DFW area ZIP codes and add city/county info
-    print("\nStep 3: Filtering by DFW area ZIP codes...")
+    # Step 3: Filter by selected geographic area ZIP codes and add city/county info
+    print("\nStep 3: Filtering by selected geographic area ZIP codes...")
     final_filtered = []
     for network in bssid_filtered:
         postal_code = network.get('postalcode', '')
         if postal_code in ZIPCODES:
-            # Add city and county information from our dictionary
+            # Add city and county information from our loaded data
             network['zip_info'] = ZIPCODES[postal_code]
             final_filtered.append(network)
     
@@ -540,7 +570,7 @@ def main():
             'total_found_in_search': len(all_networks),
             'after_bssid_filter': len(bssid_filtered),
             'final_filtered_count': len(final_filtered),
-            'coverage_area': f"{len(ZIPCODES)} ZIP codes across DFW metroplex"
+            'coverage_area': f"{len(ZIPCODES)} ZIP codes across selected geographic area"
         },
         'filter_criteria': {
             'known_bssid_prefixes': BSSIDS,
@@ -561,8 +591,8 @@ def main():
     
     # Final summary
     print(f"\n🎯 FINAL SUMMARY:")
-    print(f"Final count: {len(final_filtered)} Flock networks found in DFW Metroplex")
-    print(f"Coverage area: {len(ZIPCODES)} ZIP codes across Dallas, Tarrant, Collin, Denton, and Rockwall counties")
+    print(f"Final count: {len(final_filtered)} Flock networks found in selected area")
+    print(f"Coverage area: {len(ZIPCODES)} ZIP codes across selected counties")
     
     # Output files summary
     print(f"\n📁 OUTPUT FILES CREATED:")

@@ -1,0 +1,13 @@
+{
+  "state": "Texas",
+  "state_code": "TX",
+  "county": "Ellis",
+  "county_fips": "48139",
+  "description": "ZIP codes for Ellis County, Texas",
+  "last_updated": "2025-01-10",
+  "source": "FlockFinder Project ZIP code research",
+  "zip_codes": {
+    "75101": {"city": "Bardwell", "type": "primary"},
+    "75154": {"city": "Red Oak", "type": "primary"}
+  }
+}

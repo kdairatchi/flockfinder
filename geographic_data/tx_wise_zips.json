@@ -1,0 +1,12 @@
+{
+  "state": "Texas",
+  "state_code": "TX",
+  "county": "Wise",
+  "county_fips": "48497",
+  "description": "ZIP codes for Wise County, Texas",
+  "last_updated": "2025-01-10",
+  "source": "FlockFinder Project ZIP code research",
+  "zip_codes": {
+    "76234": {"city": "Decatur", "type": "primary"}
+  }
+}

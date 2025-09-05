@@ -1,0 +1,136 @@
+{
+  "description": "FlockFinder Geographic Registry - Available states and counties for ZIP code filtering",
+  "version": "1.1",
+  "last_updated": "2025-01-10",
+  "structure": {
+    "file_naming": "geographic_data/{state_code}_{county_name}_zips.json",
+    "data_format": "Each county file contains ZIP codes with city mappings"
+  },
+  "available_regions": {
+    "Texas": {
+      "state_code": "TX",
+      "counties": {
+        "Austin": {
+          "county_fips": "48015",
+          "file": "geographic_data/tx_austin_zips.json",
+          "zip_count": 12,
+          "major_cities": ["Bellville", "Sealy", "Wallis"]
+        },
+        "Brazoria": {
+          "county_fips": "48039",
+          "file": "geographic_data/tx_brazoria_zips.json",
+          "zip_count": 25,
+          "major_cities": ["Pearland", "Alvin", "Angleton", "Lake Jackson"]
+        },
+        "Chambers": {
+          "county_fips": "48071",
+          "file": "geographic_data/tx_chambers_zips.json",
+          "zip_count": 8,
+          "major_cities": ["Anahuac", "Mont Belvieu", "Winnie"]
+        },
+        "Collin": {
+          "county_fips": "48085",
+          "file": "geographic_data/tx_collin_zips.json",
+          "zip_count": 22,
+          "major_cities": ["Plano", "Frisco", "McKinney", "Allen"]
+        },
+        "Dallas": {
+          "county_fips": "48113", 
+          "file": "geographic_data/tx_dallas_zips.json",
+          "zip_count": 57,
+          "major_cities": ["Dallas", "Garland", "Mesquite", "Richardson"]
+        },
+        "Denton": {
+          "county_fips": "48121",
+          "file": "geographic_data/tx_denton_zips.json", 
+          "zip_count": 22,
+          "major_cities": ["Denton", "Lewisville", "Flower Mound", "The Colony"]
+        },
+        "Ellis": {
+          "county_fips": "48139",
+          "file": "geographic_data/tx_ellis_zips.json",
+          "zip_count": 2,
+          "major_cities": ["Bardwell", "Red Oak"]
+        },
+        "Fort Bend": {
+          "county_fips": "48157",
+          "file": "geographic_data/tx_fortbend_zips.json",
+          "zip_count": 35,
+          "major_cities": ["Sugar Land", "Missouri City", "Stafford", "Richmond"]
+        },
+        "Galveston": {
+          "county_fips": "48167",
+          "file": "geographic_data/tx_galveston_zips.json",
+          "zip_count": 20,
+          "major_cities": ["Galveston", "League City", "Texas City", "Friendswood"]
+        },
+        "Harris": {
+          "county_fips": "48201",
+          "file": "geographic_data/tx_harris_zips.json",
+          "zip_count": 160,
+          "major_cities": ["Houston", "Pasadena", "Baytown", "Humble"]
+        },
+        "Liberty": {
+          "county_fips": "48291",
+          "file": "geographic_data/tx_liberty_zips.json",
+          "zip_count": 15,
+          "major_cities": ["Liberty", "Cleveland", "Dayton"]
+        },
+        "Montgomery": {
+          "county_fips": "48339",
+          "file": "geographic_data/tx_montgomery_zips.json",
+          "zip_count": 30,
+          "major_cities": ["Conroe", "The Woodlands", "Spring", "Magnolia"]
+        },
+        "Rockwall": {
+          "county_fips": "48397",
+          "file": "geographic_data/tx_rockwall_zips.json",
+          "zip_count": 3, 
+          "major_cities": ["Rockwall", "Royse City"]
+        },
+        "Tarrant": {
+          "county_fips": "48439",
+          "file": "geographic_data/tx_tarrant_zips.json",
+          "zip_count": 67,
+          "major_cities": ["Fort Worth", "Arlington", "Grapevine", "Bedford"]
+        },
+        "Waller": {
+          "county_fips": "48473",
+          "file": "geographic_data/tx_waller_zips.json",
+          "zip_count": 10,
+          "major_cities": ["Hempstead", "Waller", "Prairie View"]
+        },
+        "Wise": {
+          "county_fips": "48497",
+          "file": "geographic_data/tx_wise_zips.json",
+          "zip_count": 1,
+          "major_cities": ["Decatur"]
+        }
+      }
+    }
+  },
+  "expansion_template": {
+    "new_state_example": {
+      "state_code": "CA",
+      "counties": {
+        "County_Name": {
+          "county_fips": "XXXXX",
+          "file": "geographic_data/ca_countyname_zips.json",
+          "zip_count": 0,
+          "major_cities": []
+        }
+      }
+    }
+  },
+  "metro_areas": {
+    "DFW": ["Collin", "Dallas", "Denton", "Ellis", "Rockwall", "Tarrant", "Wise"],
+    "Houston": ["Austin", "Brazoria", "Chambers", "Fort Bend", "Galveston", "Harris", "Liberty", "Montgomery", "Waller"]
+  },
+  "usage_notes": [
+    "Create geographic_data/ directory for county ZIP code files",
+    "Follow naming convention: {state_code}_{county_name}_zips.json",
+    "Update this registry when adding new states/counties",
+    "Maintain alphabetical ordering for user interface",
+    "Metro areas group related counties for easy selection"
+  ]
+}

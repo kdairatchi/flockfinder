@@ -1,0 +1,19 @@
+{
+  "state": "Texas",
+  "state_code": "TX",
+  "county": "Chambers",
+  "county_fips": "48071",
+  "description": "ZIP codes for Chambers County, Texas (Houston metropolitan area)",
+  "last_updated": "2025-01-10",
+  "source": "FlockFinder Project ZIP code research",
+  "zip_codes": {
+    "77514": {"city": "Anahuac", "type": "primary"},
+    "77523": {"city": "Beach City", "type": "primary"},
+    "77530": {"city": "Cedar Bayou", "type": "primary"},
+    "77535": {"city": "Channelview", "type": "primary"},
+    "77562": {"city": "Highlands", "type": "primary"},
+    "77580": {"city": "Mont Belvieu", "type": "primary"},
+    "77622": {"city": "Cove", "type": "primary"},
+    "77665": {"city": "Winnie", "type": "primary"}
+  }
+}

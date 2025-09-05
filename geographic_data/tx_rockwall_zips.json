@@ -1,0 +1,14 @@
+{
+  "state": "Texas",
+  "state_code": "TX",
+  "county": "Rockwall",
+  "county_fips": "48397",
+  "description": "ZIP codes for Rockwall County, Texas",
+  "last_updated": "2025-01-10",
+  "source": "FlockFinder Project ZIP code research",
+  "zip_codes": {
+    "75087": {"city": "Rockwall", "type": "primary"},
+    "75166": {"city": "Rockwall", "type": "primary"},
+    "75169": {"city": "Royse City", "type": "primary"}
+  }
+}
