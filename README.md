@@ -1,153 +1,140 @@
 # FlockFinder
 
-> Automated detection and mapping of ALPR cameras using open source intelligence
+> Comprehensive ALPR surveillance camera detection and mapping using multiple automated discovery methods
 
 ## Overview
 
-FlockFinder systematically locates ALPR (Automated License Plate Recognition) cameras at scale using WiFi database intelligence. The project searches Wigle.net for devices with known BSSID prefixes and SSID patterns, then outputs results in multiple formats for mapping and analysis.
+FlockFinder systematically locates and maps stationary ALPR (Automated License Plate Recognition) surveillance cameras using multiple automated discovery methods. The project targets all manufacturers and uses scalable techniques to provide comprehensive surveillance infrastructure mapping across communities.
 
-## Goals
+## Features
 
-- **Scale Detection**: Find ALPR cameras efficiently across large geographic areas
-- **WiFi Intelligence**: Use Wigle.net database to identify camera WiFi signatures
-- **Multiple Output Formats**: Generate JSON, CSV, and KML files for various mapping platforms
-- **Geographic Filtering**: Focus searches on specific regions using ZIP code databases
+### Current Implementation
+- **Geographic Coverage**: Texas DFW and Houston metro areas with 315+ ZIP codes across 16 counties
+- **WiFi Detection**: WiGLE database integration for surveillance devices broadcasting WiFi signals
+- **Multi-Vendor Support**: Configurable BSSID prefix detection for various ALPR manufacturers
+- **Interactive Selection**: Menu-driven geographic area selection with state, county, and multi-county options
+- **Multiple Output Formats**: JSON, CSV, and KML for analysis and mapping platforms
 
-## How It Works
+### Detection Methods
+**Currently Implemented:**
+- **WiFi Intelligence**: Device discovery through WiGLE database integration and BSSID prefix matching
 
-### Detection Method
+**Planned Development:**
+- **Bluetooth Discovery**: BLE device detection through WiGLE database integration
+- **Public Records Automation**: FOIA request processing and government contract analysis
+- **Visual Recognition**: Satellite and street view imagery analysis using computer vision
 
-- **BSSID Search**: Query Wigle database for known MAC address prefixes used by ALPR devices
-- **SSID Patterns**: Search for device-specific naming conventions like “Flock-*”
-- **Geographic Filtering**: Filter results by ZIP codes for specific metro areas (DFW, Houston)
-- **Multi-Format Export**: Output results as JSON, CSV, and KML for different mapping tools
+### Multi-Vendor Detection
+- **All ALPR Manufacturers**: Flock Safety, Motorola Solutions, Avigilon, OpenALPR, Rekor, and other vendors
+- **Stationary Installations**: Fixed pole-mounted, traffic light mounted, and other permanent surveillance cameras
 
-## Quick Start
+### Geographic Coverage
+- **Current Support**: Texas DFW and Houston metropolitan areas
+- **Expansion**: Additional states and counties are being developed
+- **Community Requests**: Submit GitHub Issues to request coverage for specific areas
+- **Contributions**: Pull Requests welcome for new geographic regions
+
+### External Data Integration
+- **WiGLE.net**: Community WiFi and Bluetooth database for device discovery
+- **OpenStreetMap**: Geographic data and community mapping platform
+- **DeFlock.me**: Community ALPR mapping project integration
+- **EFF Atlas of Surveillance**: Cross-reference with known surveillance deployments
+- **Public Records Databases**: Municipal contracts, budgets, and procurement records
+
+## Installation
 
 ### Prerequisites
-
-- Python 3.7+
-- Wigle.net account with API access
-- OpenStreetMap account for submitting new findings
+- Python 3.7 or higher
+- WiGLE.net API account and token
+- Required data files: `known_bssid_prefixes.json` and `geographic_registry.json`
 
 ### Setup
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/PoppaShell/flockfinder.git
+   cd flockfinder
+   ```
 
+2. Obtain WiGLE API credentials:
+   - Visit https://wigle.net/ and create a free account
+   - Navigate to your account settings and generate an API token
+
+3. Ensure required data files are present in the repository
+
+## Usage
+
+### Basic Operation
 ```bash
-git clone https://github.com/PoppaShell/flockfinder.git
-cd flockfinder
+python3 flockfinder.py
 ```
 
-### Basic Usage
+### Interactive Process
+1. **WiGLE API Token** (if not set in environment variables)
+2. **State Selection** from available states
+3. **County Selection** (single, multiple, or all counties)
+4. **Automated Processing** with progress indicator
 
+### Environment Variables
 ```bash
-# Run the scanner (will prompt for Wigle API token)
-python flockfinder.py
+export WIGLE_TOKEN="your_wigle_api_token_here"
 ```
 
-### Interactive Menu
-
-The scanner provides an interactive interface:
-
-```
-Select state area to scan:
-  1. Texas
-```
-```
-Select counties to scan:
-  1. Collin County - 45 ZIP codes (Plano, Frisco, McKinney)
-  2. Dallas County - 78 ZIP codes (Dallas, Irving, Garland)
-  3. Denton County - 34 ZIP codes (Denton, Lewisville, Flower Mound)
-  ...
-  16. All counties (entire state)
-```
-
-## Project Structure
+## File Structure
 
 ```
 flockfinder/
-├── README.md
-├── wigle_flock_scanner.py       # Main scanner script
-├── known_bssid_prefixes.json    # Device MAC address database
-├── geographic_registry.json     # County and ZIP code registry
-└── geographic_data/
-    ├── tx_collin_zips.json      # Collin County ZIP codes
-    ├── tx_dallas_zips.json      # Dallas County ZIP codes
-    ├── tx_denton_zips.json      # Denton County ZIP codes
-    ├── tx_ellis_zips.json       # Ellis County ZIP codes
-    ├── tx_harris_zips.json      # Harris County ZIP codes
-    ├── tx_fortbend_zips.json    # Fort Bend County ZIP codes
-    ├── tx_montgomery_zips.json  # Montgomery County ZIP codes
-    ├── tx_galveston_zips.json   # Galveston County ZIP codes
-    ├── tx_rockwall_zips.json    # Rockwall County ZIP codes
-    ├── tx_tarrant_zips.json     # Tarrant County ZIP codes
-    └── tx_wise_zips.json        # Wise County ZIP codes
+├── flockfinder.py                    # Main detection script
+├── geographic_registry.json          # State and county definitions
+├── known_bssid_prefixes.json         # Surveillance device BSSID prefixes
+├── geographic_data/                  # County ZIP code databases
+│   └── [state]_[county]_zips.json   # Individual county files
+└── output/                           # Generated results
+    ├── surveillance_results.json     # Complete search data
+    ├── surveillance_export.csv       # Universal analysis format
+    └── surveillance_locations.kml    # Google Earth visualization
 ```
 
-## Configuration
+## Privacy and Ethics
 
-### Device Database
+### Responsible Use
+- **Privacy Research**: Understanding surveillance infrastructure deployment
+- **Community Awareness**: Informing citizens about local monitoring systems
+- **Academic Study**: Supporting research into surveillance networks
+- **Transparency Advocacy**: Promoting informed policy discussions
 
-The `known_bssid_prefixes.json` file contains MAC address prefixes:
+### Data Sources
+All detection uses publicly available information:
+- **WiGLE Database**: Community-contributed WiFi and Bluetooth observations
+- **Public Records**: Government transparency documents and contracts
+- **Open Source Imagery**: Publicly accessible satellite and street view data
 
-```json
-{
-  "bssids": [
-    "00:F4:8D", "08:3A:88", "14:5A:FC", "3C:91:80",
-    "62:DD:4C", "70:C9:4E", "74:4C:A1", "80:30:49"
-  ]
-}
-```
+## Contributing
 
-### Geographic Data
+### Geographic Expansion
+1. Create county ZIP code JSON files in `geographic_data/`
+2. Update `geographic_registry.json` with new regions
+3. Submit pull request with documentation
 
-ZIP code databases organized by county with metadata:
+### Detection Method Development
+- **Bluetooth Module**: BLE scanning integration with WiGLE data
+- **Public Records Automation**: FOIA processing and contract analysis tools
+- **Visual Recognition**: Computer vision pipelines for imagery analysis
 
-```json
-{
-  "75024": {
-    "city": "Plano", 
-    "county": "Collin",
-    "state": "TX"
-  }
-}
-```
+### Community Support
+- **GitHub Issues**: Request new geographic coverage areas
+- **Pull Requests**: Contribute new regions or detection methods
+- **Documentation**: Improve guides and technical documentation
 
-## Output Formats
+## Legal Notice
 
-### JSON Results
+This project operates within legal boundaries using only publicly available information. Users are responsible for ensuring compliance with local laws and regulations.
 
-```json
-{
-  "search_metadata": {
-    "timestamp": "2025-09-04T12:00:00Z",
-    "counties_searched": ["Dallas", "Collin"],
-    "total_results": 25
-  },
-  "devices": [
-    {
-      "trilat": 32.7767,
-      "trilong": -96.7970,
-      "ssid": "Flock-ABC123",
-      "netid": "08:3A:88:XX:XX:XX",
-      "city": "Dallas",
-      "county": "Dallas"
-    }
-  ]
-}
-```
+## Support
 
-### CSV Export
+- **Issues**: GitHub issue tracker for bugs and feature requests
+- **Coverage Requests**: Submit issues for new geographic areas
+- **Community**: Contribute to open source surveillance transparency research
 
-Universal format for spreadsheet analysis with columns:
+## License
 
-- Latitude, Longitude, SSID, BSSID, City, County, State
-
-### KML Export
-
-Geographic markup for mapping platforms (Google Earth, ArcGIS, QGIS)
-
-## Resources
-
-- [Wigle.net](https://wigle.net) - WiFi database and API
-- [DeFlock.me](https://deflock.me) - ALPR camera location database
-- [OpenStreetMap](https://openstreetmap.org) - Collaborative mapping platform
+Open source project supporting transparency and privacy research.
