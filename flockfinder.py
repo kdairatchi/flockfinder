@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-FlockFinder - Wigle Database Scanner for Flock Safety ALPR Cameras
-================================================================
+FlockFinder - ALPR Surveillance Camera Detection
+===============================================
 Modular script with geographic region selection and external data files
 Outputs JSON, universal CSV, and KML formats for mapping platforms
 """
@@ -14,14 +14,11 @@ import os
 import requests
 import sys
 import time
-from pprint import pprint
 
 ### GLOBALS ###
 ## Wigle API Authentication
-# Checks if running in a GitHub Action or Codespaces
 if os.environ.get('GITHUB_ACTIONS') == "true" or os.environ.get('CODESPACES') == "true":
     TOKEN = os.environ.get('WIGLE_TOKEN')
-# Asks user for a token if not running in automation environment
 else:
     TOKEN = getpass.getpass('Enter Wigle API Token: ')
 
@@ -31,6 +28,7 @@ API = '/api/v2/network/search'
 
 # Data loaded from external JSON files
 BSSIDS = []      # Will be populated from known_bssid_prefixes.json
+SSIDS = []       # Will be populated from known_ssid_prefixes.json
 ZIPCODES = {}    # Will be populated from selected county files
 
 ### FUNCTIONS ###
@@ -46,31 +44,67 @@ def load_bssid_prefixes(filename="known_bssid_prefixes.json"):
         list: List of BSSID prefixes (first 3 octets)
     """
     try:
-        # Try to load existing file
         if os.path.exists(filename):
             with open(filename, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 bssid_list = data.get('bssid_prefixes', [])
                 
                 if not bssid_list:
-                    print(f"❌ No BSSID prefixes found in {filename}")
+                    print(f"No BSSID prefixes found in {filename}")
                     print(f"Please add BSSID prefixes to the 'bssid_prefixes' array in the file")
                     return []
                 
-                print(f"✓ Loaded {len(bssid_list)} BSSID prefixes from {filename}")
+                print(f"Loaded {len(bssid_list)} BSSID prefixes from {filename}")
                 return bssid_list
         else:
-            print(f"❌ Required file not found: {filename}")
-            print(f"Please create {filename} with known Flock Safety BSSID prefixes")
+            print(f"Required file not found: {filename}")
+            print(f"Please create {filename} with known surveillance device BSSID prefixes")
             print(f"See documentation for the correct JSON format")
             return []
             
     except json.JSONDecodeError as e:
-        print(f"❌ Error parsing {filename}: {e}")
+        print(f"Error parsing {filename}: {e}")
         print(f"Please check the JSON format in {filename}")
         return []
     except Exception as e:
-        print(f"❌ Error loading {filename}: {e}")
+        print(f"Error loading {filename}: {e}")
+        return []
+
+def load_ssid_prefixes(filename="known_ssid_prefixes.json"):
+    """
+    Load known SSID prefixes from external JSON file
+    
+    Args:
+        filename (str): JSON file containing SSID prefixes
+        
+    Returns:
+        list: List of SSID prefixes with wildcards
+    """
+    try:
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                ssid_list = data.get('ssid_prefixes', [])
+                
+                if not ssid_list:
+                    print(f"No SSID prefixes found in {filename}")
+                    print(f"Please add SSID prefixes to the 'ssid_prefixes' array in the file")
+                    return []
+                
+                print(f"Loaded {len(ssid_list)} SSID prefixes from {filename}")
+                return ssid_list
+        else:
+            print(f"Required file not found: {filename}")
+            print(f"Please create {filename} with known surveillance device SSID prefixes")
+            print(f"See documentation for the correct JSON format")
+            return []
+            
+    except json.JSONDecodeError as e:
+        print(f"Error parsing {filename}: {e}")
+        print(f"Please check the JSON format in {filename}")
+        return []
+    except Exception as e:
+        print(f"Error loading {filename}: {e}")
         return []
 
 def load_geographic_registry(filename="geographic_registry.json"):
@@ -88,11 +122,11 @@ def load_geographic_registry(filename="geographic_registry.json"):
             with open(filename, 'r', encoding='utf-8') as f:
                 return json.load(f)
         else:
-            print(f"❌ Geographic registry not found: {filename}")
+            print(f"Geographic registry not found: {filename}")
             print("Please create the geographic registry file. See documentation for format.")
             return None
     except Exception as e:
-        print(f"❌ Error loading geographic registry: {e}")
+        print(f"Error loading geographic registry: {e}")
         return None
 
 def load_county_zipcode_data(file_path):
@@ -119,13 +153,13 @@ def load_county_zipcode_data(file_path):
                         'county': county_name
                     }
                 
-                print(f"✓ Loaded {len(zip_dict)} ZIP codes from {county_name} County")
+                print(f"Loaded {len(zip_dict)} ZIP codes from {county_name} County")
                 return zip_dict
         else:
-            print(f"❌ County file not found: {file_path}")
+            print(f"County file not found: {file_path}")
             return {}
     except Exception as e:
-        print(f"❌ Error loading county data from {file_path}: {e}")
+        print(f"Error loading county data from {file_path}: {e}")
         return {}
 
 def select_geographic_regions():
@@ -142,12 +176,12 @@ def select_geographic_regions():
     # Load geographic registry
     registry = load_geographic_registry()
     if not registry:
-        print("❌ Cannot load geographic registry.")
+        print("Cannot load geographic registry.")
         return {}, None
     
     available_regions = registry.get('available_regions', {})
     if not available_regions:
-        print("❌ No geographic regions available in registry.")
+        print("No geographic regions available in registry.")
         return {}, None
     
     # Step 1: Select State
@@ -170,11 +204,11 @@ def select_geographic_regions():
                 selected_state = states[state_idx]
                 break
             else:
-                print(f"❌ Please enter a number between 1 and {len(states)}")
+                print(f"Please enter a number between 1 and {len(states)}")
         except ValueError:
-            print("❌ Please enter a valid number or 'q' to quit")
+            print("Please enter a valid number or 'q' to quit")
     
-    print(f"\n✓ Selected state: {selected_state}")
+    print(f"\nSelected state: {selected_state}")
     
     # Get state code for API
     state_data = available_regions[selected_state]
@@ -217,12 +251,12 @@ def select_geographic_regions():
             if selected_counties:
                 break
             else:
-                print("❌ No valid counties selected")
+                print("No valid counties selected")
                 
         except ValueError as e:
-            print(f"❌ {e}. Please enter valid numbers separated by commas")
+            print(f"{e}. Please enter valid numbers separated by commas")
     
-    print(f"\n✓ Selected counties: {', '.join(selected_counties)}")
+    print(f"\nSelected counties: {', '.join(selected_counties)}")
     
     # Step 3: Load ZIP code data from selected counties
     print(f"\nLoading ZIP code data...")
@@ -236,28 +270,82 @@ def select_geographic_regions():
             county_zips = load_county_zipcode_data(file_path)
             combined_zipcodes.update(county_zips)
         else:
-            print(f"⚠️  No file path specified for {county} County")
+            print(f"No file path specified for {county} County")
     
-    print(f"\n✓ Total ZIP codes loaded: {len(combined_zipcodes)}")
-    print(f"✓ Coverage: {', '.join(selected_counties)} County/Counties, {selected_state}")
+    print(f"\nTotal ZIP codes loaded: {len(combined_zipcodes)}")
+    print(f"Coverage: {', '.join(selected_counties)} County/Counties, {selected_state}")
     
     return combined_zipcodes, state_code
 
-def search_wigle(params):
-    """Simple function to make Wigle API request"""
-    url = BASEURL + API
+def make_wigle_request(endpoint, params=None):
+    """Make WiGLE API request with minimal output"""
+    if params is None:
+        params = {}
+    
+    url = BASEURL + endpoint
+    
     try:
-        response = requests.get(url, headers=HEADER, params=params)
+        response = requests.get(url, headers=HEADER, params=params, timeout=30)
+        
         if response.status_code == 200:
             return response.json()
+        elif response.status_code == 429:
+            print("Rate limited by WiGLE API. Waiting 60 seconds...")
+            time.sleep(60)
+            return make_wigle_request(endpoint, params)
         else:
-            print(f"Error: {response.status_code} - {response.text}")
+            print(f"API request failed: HTTP {response.status_code}")
             return None
-    except Exception as e:
-        print(f"Request failed: {e}")
+            
+    except requests.exceptions.RequestException as e:
+        print(f"Network error: {e}")
         return None
 
-def create_csv_export(networks, filename="flock_maps_import.csv"):
+def search_by_ssid_and_region(ssid_pattern, state_code):
+    """Search for networks by SSID pattern and region - broad initial search"""
+    params = {
+        'ssidlike': ssid_pattern,
+        'region': state_code,
+        'onlymine': 'false',
+        'freenet': 'false',
+        'paynet': 'false'
+    }
+    
+    response = make_wigle_request(API, params)
+    if response and response.get('success'):
+        return response.get('results', [])
+    return []
+
+def filter_by_bssid_prefixes(networks, bssid_prefixes):
+    """Filter networks to only those with known BSSID prefixes"""
+    filtered = []
+    for network in networks:
+        bssid = network.get('netid', '')
+        if len(bssid) >= 8:  # Make sure BSSID is long enough
+            bssid_prefix = bssid[:8]  # Get first 3 octets (XX:XX:XX format)
+            if bssid_prefix in bssid_prefixes:
+                filtered.append(network)
+    return filtered
+
+def filter_by_zip_codes(networks, zip_codes):
+    """Filter networks to only those in specified ZIP codes"""
+    filtered = []
+    for network in networks:
+        postal_code = network.get('postalcode', '')
+        if postal_code in zip_codes:
+            # Add ZIP code info to network
+            network['zip_info'] = zip_codes[postal_code]
+            filtered.append(network)
+    return filtered
+
+def add_wigle_urls(networks):
+    """Add WiGLE map URLs to each network"""
+    for network in networks:
+        bssid = network.get('netid', '')
+        if bssid:
+            network['wigle_map_url'] = f"https://wigle.net/search?netid={bssid}"
+
+def create_csv_export(networks, filename="output/surveillance_export.csv"):
     """
     Create a universal CSV file with WKT geometry format for mapping platforms
     Compatible with Google My Maps, ArcGIS, QGIS, and other GIS software
@@ -309,14 +397,13 @@ def create_csv_export(networks, filename="flock_maps_import.csv"):
                 wigle_url = network.get('wigle_map_url', '')
                 
                 # Create WKT POINT geometry - format: POINT(longitude latitude)
-                # Note: WKT uses longitude first, then latitude (opposite of lat,lon)
                 wkt_point = f"POINT({longitude} {latitude})"
                 
                 # Create display name for the marker
-                marker_name = f"Flock Camera - {city}"
+                marker_name = f"ALPR Camera - {city}"
                 
                 # Create description with key details
-                description = f"Flock Safety ALPR Camera - SSID: {ssid} - BSSID: {bssid} - Location: {city}, {county} County - ZIP: {zip_code}"
+                description = f"ALPR Surveillance Camera - SSID: {ssid} - BSSID: {bssid} - Location: {city}, {county} County - ZIP: {zip_code}"
                 
                 # Write CSV row
                 writer.writerow({
@@ -335,14 +422,14 @@ def create_csv_export(networks, filename="flock_maps_import.csv"):
                     'Wigle_URL': wigle_url
                 })
         
-        print(f"✓ Universal CSV created: {filename}")
-        print(f"✓ {len(networks)} camera locations exported")
-        print(f"✓ Compatible with Google My Maps, ArcGIS, QGIS, and other GIS platforms")
+        print(f"Universal CSV created: {filename}")
+        print(f"{len(networks)} camera locations exported")
+        print(f"Compatible with Google My Maps, ArcGIS, QGIS, and other GIS platforms")
         
     except Exception as e:
         print(f"Error creating CSV file: {e}")
 
-def create_kml_export(networks, filename="flock_maps_import.kml"):
+def create_kml_export(networks, filename="output/surveillance_locations.kml"):
     """
     Create a KML file for universal mapping platform compatibility
     Compatible with Google Earth, Google Maps, ArcGIS, QGIS, and other mapping software
@@ -363,11 +450,11 @@ def create_kml_export(networks, filename="flock_maps_import.kml"):
             kmlfile.write('<?xml version="1.0" encoding="UTF-8"?>\n')
             kmlfile.write('<kml xmlns="http://www.opengis.net/kml/2.2">\n')
             kmlfile.write('  <Document>\n')
-            kmlfile.write('    <n>Flock Safety ALPR Camera Locations</n>\n')
-            kmlfile.write('    <description>FlockFinder Project - Discovered Flock Safety camera locations</description>\n')
+            kmlfile.write('    <n>ALPR Surveillance Camera Locations</n>\n')
+            kmlfile.write('    <description>FlockFinder Project - Discovered surveillance camera locations</description>\n')
             
             # Define shared style for all placemarks
-            kmlfile.write('    <Style id="flockCameraIcon">\n')
+            kmlfile.write('    <Style id="surveillanceCamera">\n')
             kmlfile.write('      <IconStyle>\n')
             kmlfile.write('        <scale>1.2</scale>\n')
             kmlfile.write('        <Icon>\n')
@@ -406,11 +493,11 @@ def create_kml_export(networks, filename="flock_maps_import.kml"):
                                    .replace("'", '&apos;'))
                 
                 # Create placemark name and description
-                placemark_name = escape_xml(f"Flock Camera - {city}")
+                placemark_name = escape_xml(f"ALPR Camera - {city}")
                 
                 # Create detailed description with HTML formatting
                 description_html = f"""<![CDATA[
-<h3>Flock Safety ALPR Camera</h3>
+<h3>ALPR Surveillance Camera</h3>
 <table border="1" cellpadding="3">
 <tr><td><b>SSID:</b></td><td>{escape_xml(ssid)}</td></tr>
 <tr><td><b>BSSID:</b></td><td>{escape_xml(bssid)}</td></tr>
@@ -428,7 +515,7 @@ def create_kml_export(networks, filename="flock_maps_import.kml"):
                 kmlfile.write('    <Placemark>\n')
                 kmlfile.write(f'      <n>{placemark_name}</n>\n')
                 kmlfile.write(f'      <description>{description_html}</description>\n')
-                kmlfile.write('      <styleUrl>#flockCameraIcon</styleUrl>\n')
+                kmlfile.write('      <styleUrl>#surveillanceCamera</styleUrl>\n')
                 kmlfile.write('      <Point>\n')
                 kmlfile.write(f'        <coordinates>{longitude},{latitude},0</coordinates>\n')
                 kmlfile.write('      </Point>\n')
@@ -453,171 +540,149 @@ def create_kml_export(networks, filename="flock_maps_import.kml"):
             kmlfile.write('  </Document>\n')
             kmlfile.write('</kml>\n')
         
-        print(f"✓ Universal KML created: {filename}")
-        print(f"✓ {len(networks)} camera locations exported")
-        print(f"✓ Compatible with Google Earth, Google Maps, ArcGIS, QGIS, and other mapping platforms")
+        print(f"Universal KML created: {filename}")
+        print(f"{len(networks)} camera locations exported")
+        print(f"Compatible with Google Earth, Google Maps, ArcGIS, QGIS, and other mapping platforms")
         
     except Exception as e:
         print(f"Error creating KML file: {e}")
 
-def main():
-    global BSSIDS, ZIPCODES
+def display_final_summary(networks, search_info):
+    """Display clean final summary"""
+    print("\n" + "="*60)
+    print("FLOCKFINDER RESULTS SUMMARY")
+    print("="*60)
     
-    print("FlockFinder - Wigle Database Scanner")
-    print("===================================")
+    if networks:
+        print(f"{len(networks)} potential surveillance cameras detected")
+        print(f"Search completed: {search_info.get('search_timestamp', 'N/A')}")
+        
+        # Get ZIP code count from search parameters
+        search_params = search_info.get('search_parameters', {})
+        zip_count = search_params.get('zip_codes_count', 0)
+        print(f"Coverage: {zip_count} ZIP codes")
+        
+        # Group by county for summary
+        county_counts = {}
+        for network in networks:
+            zip_info = network.get('zip_info', {})
+            county = zip_info.get('county', 'Unknown')
+            county_counts[county] = county_counts.get(county, 0) + 1
+        
+        print(f"\nDetection breakdown by county:")
+        for county, count in sorted(county_counts.items()):
+            print(f"   • {county}: {count} cameras")
+            
+        print(f"\nFiles generated:")
+        print(f"   • output/surveillance_results.json - Complete data with metadata")
+        print(f"   • output/surveillance_export.csv - Universal CSV for analysis")
+        print(f"   • output/surveillance_locations.kml - Google Earth visualization")
+        
+    else:
+        print("No surveillance cameras detected in selected area")
+        print("   • Try expanding search area")
+        print("   • Check if BSSID/SSID prefixes need updating")
+    
+    print("="*60)
+
+### MAIN EXECUTION ###
+def main():
+    global BSSIDS, SSIDS, ZIPCODES
+    
+    print("FlockFinder - ALPR Surveillance Camera Detection")
+    print("=" * 50)
     
     # Load BSSID prefixes from external JSON file
     BSSIDS = load_bssid_prefixes()
     
     if not BSSIDS:
-        print("❌ No BSSID prefixes loaded. Cannot proceed with search.")
+        print("No BSSID prefixes loaded. Cannot proceed with search.")
         print("Please create or fix the known_bssid_prefixes.json file")
+        return
+    
+    # Load SSID prefixes from external JSON file
+    SSIDS = load_ssid_prefixes()
+    
+    if not SSIDS:
+        print("No SSID prefixes loaded. Cannot proceed with search.")
+        print("Please create or fix the known_ssid_prefixes.json file")
         return
     
     # Interactive geographic region selection
     ZIPCODES, state_code = select_geographic_regions()
     
     if not ZIPCODES:
-        print("❌ No ZIP codes loaded. Cannot proceed with search.")
+        print("No ZIP codes loaded. Cannot proceed with search.")
         return
     
     if not state_code:
-        print("❌ No state code determined. Cannot proceed with search.")
+        print("No state code determined. Cannot proceed with search.")
         return
     
-    print(f"\nSearching for Flock devices...")
+    print(f"\nSearching for surveillance devices...")
     print(f"Known BSSID prefixes loaded: {len(BSSIDS)}")
+    print(f"Known SSID prefixes loaded: {len(SSIDS)}")
     print(f"Geographic coverage: {len(ZIPCODES)} ZIP codes")
     print(f"Using region filter: {state_code}")
     
-    # Broader search: Get all flock networks in selected state, then filter locally
-    params = {
-        'ssidlike': 'flock-%',
-        'region': state_code
-    }
+    # Search phase - broad SSID search first, then filter locally
+    print("Scanning WiGLE database...")
+    all_networks = []
     
-    print("\nStep 1: Broad flock SSID search...")
-    result = search_wigle(params)
+    # Search by each SSID prefix in the target state
+    total_prefixes = len(SSIDS)
+    for i, ssid_prefix in enumerate(SSIDS, 1):
+        print(f"   Progress: {i}/{total_prefixes} SSID prefixes", end='\r')
+        
+        networks = search_by_ssid_and_region(ssid_prefix, state_code)
+        all_networks.extend(networks)
+        
+        time.sleep(1)  # Rate limiting
     
-    if not result or not result.get('success'):
-        print("Search failed or no results")
-        return
+    print(f"\nProcessing {len(all_networks)} total networks...")
     
-    all_networks = result.get('results', [])
-    total_results = result.get('totalResults', 0)
-    
-    print(f"Found {len(all_networks)} networks in this batch")
-    print(f"Total results available: {total_results}")
-    
-    # Step 2: Filter by known BSSIDs
-    print("\nStep 2: Filtering by known BSSID prefixes...")
-    bssid_filtered = []
-    for network in all_networks:
-        bssid = network.get('netid', '')
-        if len(bssid) >= 8:  # Make sure BSSID is long enough
-            bssid_prefix = bssid[:8]  # Get first 3 octets (XX:XX:XX format)
-            if bssid_prefix in BSSIDS:
-                bssid_filtered.append(network)
-    
+    # Filter by known BSSID prefixes
+    print("Filtering by known BSSID prefixes...")
+    bssid_filtered = filter_by_bssid_prefixes(all_networks, BSSIDS)
     print(f"After BSSID filtering: {len(bssid_filtered)} networks")
     
-    # Step 3: Filter by selected geographic area ZIP codes and add city/county info
-    print("\nStep 3: Filtering by selected geographic area ZIP codes...")
-    final_filtered = []
-    for network in bssid_filtered:
-        postal_code = network.get('postalcode', '')
-        if postal_code in ZIPCODES:
-            # Add city and county information from our loaded data
-            network['zip_info'] = ZIPCODES[postal_code]
-            final_filtered.append(network)
+    # Filter by geographic area and add city/county info
+    print("Filtering by selected geographic area...")
+    final_filtered = filter_by_zip_codes(bssid_filtered, ZIPCODES)
+    print(f"After geographic filtering: {len(final_filtered)} networks")
     
-    print(f"After ZIP code filtering: {len(final_filtered)} networks")
+    # Add WiGLE URLs
+    add_wigle_urls(final_filtered)
     
-    # Step 4: Add Wigle map URLs to each network
-    print("\nStep 4: Adding Wigle map URLs...")
-    for network in final_filtered:
-        bssid = network.get('netid', '')
-        if bssid:
-            # Build Wigle map URL for this specific BSSID
-            wigle_url = f"https://wigle.net/search?netid={bssid}"
-            network['wigle_map_url'] = wigle_url
+    # Prepare output data
+    search_info = {
+        'search_timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+        'total_found_in_search': len(all_networks),
+        'after_bssid_filter': len(bssid_filtered),
+        'after_geographic_filter': len(final_filtered),
+        'search_parameters': {
+            'bssid_prefixes_count': len(BSSIDS),
+            'ssid_prefixes_count': len(SSIDS),
+            'zip_codes_count': len(ZIPCODES),
+            'state_region': state_code
+        }
+    }
     
-    # Step 5: Display summary of filtered results
-    print("\nFiltered Results Summary:")
-    print("=" * 50)
-    if final_filtered:
-        for i, network in enumerate(final_filtered, 1):
-            zip_info = network.get('zip_info', {})
-            print(f"Network {i}:")
-            print(f"  SSID: {network.get('ssid', 'N/A')}")
-            print(f"  BSSID: {network.get('netid', 'N/A')}")
-            print(f"  City: {zip_info.get('city', 'N/A')}")
-            print(f"  County: {zip_info.get('county', 'N/A')}")
-            print(f"  ZIP: {network.get('postalcode', 'N/A')}")
-            print(f"  Coordinates: {network.get('trilat', 'N/A')}, {network.get('trilong', 'N/A')}")
-            print(f"  First seen: {network.get('firsttime', 'N/A')}")
-            print(f"  Last seen: {network.get('lasttime', 'N/A')}")
-            print(f"  Map URL: {network.get('wigle_map_url', 'N/A')}")
-            print("-" * 30)
-    else:
-        print("No networks found matching all filters")
-    
-    # Step 6: Save filtered results to JSON file
     output_data = {
-        'search_info': {
-            'search_params': params,
-            'search_timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
-            'total_found_in_search': len(all_networks),
-            'after_bssid_filter': len(bssid_filtered),
-            'final_filtered_count': len(final_filtered),
-            'coverage_area': f"{len(ZIPCODES)} ZIP codes across selected geographic area"
-        },
-        'filter_criteria': {
-            'known_bssid_prefixes': BSSIDS,
-            'zip_codes_covered': list(ZIPCODES.keys())
-        },
+        'search_info': search_info,
         'networks': final_filtered
     }
     
     # Save JSON results
-    with open('flock_results_filtered.json', 'w') as f:
+    with open('output/surveillance_results.json', 'w') as f:
         json.dump(output_data, f, indent=2)
     
-    print(f"\n📄 Results saved to: flock_results_filtered.json")
-    
-    # Step 7: Create universal CSV and KML exports for mapping platforms
+    # Create exports
     create_csv_export(final_filtered)
     create_kml_export(final_filtered)
     
-    # Final summary
-    print(f"\n🎯 FINAL SUMMARY:")
-    print(f"Final count: {len(final_filtered)} Flock networks found in selected area")
-    print(f"Coverage area: {len(ZIPCODES)} ZIP codes across selected counties")
-    
-    # Output files summary
-    print(f"\n📁 OUTPUT FILES CREATED:")
-    print(f"  • flock_results_filtered.json - Complete data with metadata")
-    print(f"  • flock_maps_import.csv - Universal CSV with WKT geometry")
-    print(f"  • flock_maps_import.kml - Universal KML for mapping platforms")
-    print(f"\n🗺️  COMPATIBLE MAPPING PLATFORMS:")
-    print(f"  • Google My Maps / Google Earth")
-    print(f"  • ArcGIS / ArcGIS Online")
-    print(f"  • QGIS (Free & Open Source)")
-    print(f"  • MapBox / Leaflet")
-    print(f"  • Any GIS software supporting WKT or KML formats")
-    
-    # Summary statistics by county
-    county_stats = {}
-    for network in final_filtered:
-        county = network.get('zip_info', {}).get('county', 'Unknown')
-        if county not in county_stats:
-            county_stats[county] = 0
-        county_stats[county] += 1
-    
-    if county_stats:
-        print("\nResults by County:")
-        for county, count in sorted(county_stats.items()):
-            print(f"  {county} County: {count} networks")
+    # Display final summary
+    display_final_summary(final_filtered, search_info)
 
 if __name__ == "__main__":
     main()
