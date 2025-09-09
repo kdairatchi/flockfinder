@@ -1,0 +1,39 @@
+{
+  "description": "Known BSSID prefixes for Flock Safety ALPR cameras",
+  "format": "First 3 octets of MAC address in XX:XX:XX format",
+  "last_updated": "2025-09-04",
+  "sources": [
+    "Manual wardriving discoveries",
+    "LiteOn Technology Corp MAC ranges (primary WiFi chipset)",
+    "Community contributions",
+    "Wigle.net database analysis"
+  ],
+  "bssid_prefixes": [
+    "00:F4:8D",
+    "08:3A:88",
+    "14:5A:FC",
+    "3C:91:80",
+    "62:DD:4C",
+    "70:C9:4E",
+    "74:4C:A1",
+    "80:30:49",
+    "86:A2:F4",
+    "92:B7:DD",
+    "94:08:53",
+    "9C:2F:9D",
+    "A2:A2:F4",
+    "A6:A2:F4",
+    "B8:27:EB",
+    "C0:C9:E3",
+    "D0:39:57",
+    "D8:F3:BC",
+    "E0:0A:F6",
+    "E4:AA:EA",
+    "E4:C3:2A",
+    "E6:F4:C6",
+    "E8:D0:FC",
+    "F4:6A:DD",
+    "F6:7F:D7",
+    "F8:A2:D6"
+  ]
+}
