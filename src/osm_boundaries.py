@@ -131,6 +131,45 @@ def get_available_countries() -> Dict[str, str]:
     return countries
 
 
+def extract_coordinates_from_geometry(members: List[Dict]) -> List[Tuple[float, float]]:
+    """
+    Extract coordinate pairs from OSM relation geometry
+    
+    Args:
+        members (list): OSM relation members with geometry
+        
+    Returns:
+        list: List of (longitude, latitude) coordinate tuples
+    """
+    print(f"DEBUG COORDS: extract_coordinates_from_geometry called with {len(members)} members")
+    coordinates = []
+    
+    for i, member in enumerate(members):
+        print(f"DEBUG COORDS: Member {i}: type={member.get('type')}, keys={list(member.keys())}")
+        
+        if member.get('type') == 'way' and 'geometry' in member:
+            geometry = member['geometry']
+            print(f"DEBUG COORDS: Way geometry has {len(geometry)} nodes")
+            
+            for j, node in enumerate(geometry):
+                lon = node.get('lon')
+                lat = node.get('lat')
+                if lon is not None and lat is not None:
+                    coordinates.append((lon, lat))
+                    if j < 3:  # Only print first few for debugging
+                        print(f"DEBUG COORDS: Node {j}: lon={lon}, lat={lat}")
+                else:
+                    print(f"DEBUG COORDS: Node {j}: missing lon/lat - keys={list(node.keys())}")
+                    
+                if j > 10:  # Don't spam too much debug
+                    break
+        else:
+            print(f"DEBUG COORDS: Skipping member {i}: not a way with geometry")
+    
+    print(f"DEBUG COORDS: Final extracted {len(coordinates)} coordinate pairs")
+    return coordinates
+
+
 def get_admin_divisions(country_code: str, admin_level: int = 4) -> Dict[str, Dict]:
     """
     Get administrative divisions for a country from OSM
@@ -142,52 +181,115 @@ def get_admin_divisions(country_code: str, admin_level: int = 4) -> Dict[str, Di
     Returns:
         dict: Administrative division code to data mapping
     """
+    print("DEBUG OSM: get_admin_divisions called - VERSION 2")  # ADD THIS LINE
+    print(f"DEBUG OSM: Starting get_admin_divisions for {country_code}")
+    
+    # Supported countries with tested queries
+    SUPPORTED_COUNTRIES = ['US']  # Add more as we test them
+    
+    if country_code not in SUPPORTED_COUNTRIES:
+        print(f"Error: Country '{country_code}' is not yet supported.")
+        print(f"Currently supported: {', '.join(SUPPORTED_COUNTRIES)}")
+        return {}
+    
+    print(f"DEBUG OSM: {country_code} is supported, continuing...")
+    
     # Check cache first
     cache_dir = get_cache_directory()
     cache_file = os.path.join(cache_dir, f"{country_code}_admin_{admin_level}.json")
+    
+    print(f"DEBUG OSM: Looking for cache file: {cache_file}")
+    print(f"DEBUG OSM: Cache file exists: {os.path.exists(cache_file)}")
     
     if os.path.exists(cache_file):
         try:
             with open(cache_file, 'r', encoding='utf-8') as f:
                 cached_data = json.load(f)
+                cache_age = time.time() - cached_data.get('timestamp', 0)
+                print(f"DEBUG OSM: Cache age: {cache_age/3600:.1f} hours")
                 if cached_data.get('timestamp', 0) > time.time() - 86400:  # 24 hour cache
-                    return cached_data.get('divisions', {})
+                    divisions = cached_data.get('divisions', {})
+                    print(f"DEBUG OSM: Using cached data with {len(divisions)} divisions")
+                    return divisions
+                else:
+                    print("DEBUG OSM: Cache expired, will query fresh")
         except (json.JSONDecodeError, IOError):
+            print("DEBUG OSM: Cache file exists but couldn't be read")
             pass
     
-    # Query Overpass API for administrative divisions
-    query = f"""
-    [out:json][timeout:25];
-    (
-      relation["admin_level"="{admin_level}"]["boundary"="administrative"]["ISO3166-1:alpha2"="{country_code}"];
-    );
-    out geom tags;
-    """
+    print("DEBUG OSM: No valid cache found, querying OSM...")
+    
+    # Build query based on country
+    if country_code == "US":
+        # US-specific query using ISO3166-2 codes
+        query = f"""
+        [out:json][timeout:25];
+        (
+        relation["admin_level"="{admin_level}"]["boundary"="administrative"]["ISO3166-2"~"^US-"];
+        );
+        out geom;
+        """
+        print(f"DEBUG OSM: Using US query for admin_level {admin_level}")
+    else:
+        print(f"Error: Query not implemented for country '{country_code}'")
+        return {}
     
     print(f"Querying OpenStreetMap for {country_code} administrative divisions...")
     data = query_overpass(query)
+    
+    # DEBUG OUTPUT
+    print(f"DEBUG OSM: Query returned data: {data is not None}")
+    if data:
+        elements = data.get('elements', [])
+        print(f"DEBUG OSM: Elements in response: {len(elements)}")
+        if elements:
+            print(f"DEBUG OSM: First element has keys: {list(elements[0].keys())}")
+            print(f"DEBUG OSM: First element tags: {elements[0].get('tags', {}).get('name')}")
+        else:
+            print("DEBUG OSM: No elements in response")
+    else:
+        print("DEBUG OSM: No data returned from query")
     
     if not data or 'elements' not in data:
         print(f"Error: Could not retrieve administrative divisions for {country_code}")
         return {}
     
+    print(f"Found {len(data.get('elements', []))} administrative divisions")
+    
     divisions = {}
-    for element in data['elements']:
+    for i, element in enumerate(data['elements']):
         tags = element.get('tags', {})
         geometry = element.get('members', [])
         
-        # Extract division information
-        admin_code = (tags.get('ref') or 
-                     tags.get('ISO3166-2') or 
-                     tags.get('state_code') or 
-                     tags.get('fips_code') or
-                     str(element.get('id', '')))
+        element_name = tags.get('name', 'Unknown')
+        print(f"DEBUG OSM: Processing element {i+1}: {element_name}")
+        print(f"DEBUG OSM: Element has {len(geometry)} geometry members")
+        
+        # Extract division information - US specific handling
+        if country_code == "US":
+            # For US, get the state code from ISO3166-2 (e.g., "US-TX" -> "TX")
+            iso_code = tags.get('ISO3166-2', '')
+            admin_code = iso_code.replace('US-', '') if iso_code.startswith('US-') else (
+                tags.get('ref') or 
+                tags.get('ref:USPS') or
+                str(element.get('id', ''))
+            )
+        else:
+            admin_code = (tags.get('ref') or 
+                         tags.get('ISO3166-2') or 
+                         tags.get('state_code') or 
+                         tags.get('fips_code') or
+                         str(element.get('id', '')))
         
         name = tags.get('name:en') or tags.get('name') or admin_code
         
-        if admin_code:
+        print(f"DEBUG OSM: Extracted admin_code='{admin_code}', name='{name}'")
+        
+        if admin_code and name:
             # Extract coordinates from geometry
+            print(f"DEBUG OSM: About to extract coordinates for {name}")
             coordinates = extract_coordinates_from_geometry(geometry)
+            print(f"DEBUG OSM: Extracted {len(coordinates)} coordinates for {name}")
             
             divisions[admin_code] = {
                 'name': name,
@@ -196,6 +298,11 @@ def get_admin_divisions(country_code: str, admin_level: int = 4) -> Dict[str, Di
                 'coordinates': coordinates,
                 'admin_level': admin_level
             }
+            print(f"DEBUG OSM: Added division: {admin_code} - {name} with {len(coordinates)} coords")
+        else:
+            print(f"DEBUG OSM: Skipped element - missing admin_code or name")
+    
+    print(f"DEBUG OSM: Final divisions count: {len(divisions)}")
     
     # Cache the results
     ensure_cache_directory()
@@ -209,33 +316,12 @@ def get_admin_divisions(country_code: str, admin_level: int = 4) -> Dict[str, Di
     try:
         with open(cache_file, 'w', encoding='utf-8') as f:
             json.dump(cache_data, f, indent=2, ensure_ascii=False)
-    except IOError:
+        print(f"DEBUG OSM: Cached {len(divisions)} divisions to {cache_file}")
+    except IOError as e:
+        print(f"DEBUG OSM: Cache write failed: {e}")
         pass  # Cache write failure is not critical
     
     return divisions
-
-
-def extract_coordinates_from_geometry(members: List[Dict]) -> List[Tuple[float, float]]:
-    """
-    Extract coordinate pairs from OSM relation geometry
-    
-    Args:
-        members (list): OSM relation members with geometry
-        
-    Returns:
-        list: List of (longitude, latitude) coordinate tuples
-    """
-    coordinates = []
-    
-    for member in members:
-        if member.get('type') == 'way' and 'geometry' in member:
-            for node in member['geometry']:
-                lon = node.get('lon')
-                lat = node.get('lat')
-                if lon is not None and lat is not None:
-                    coordinates.append((lon, lat))
-    
-    return coordinates
 
 
 def calculate_bounding_box(coordinates: List[Tuple[float, float]]) -> Optional[Dict[str, float]]:

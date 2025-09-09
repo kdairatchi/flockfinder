@@ -1,6 +1,0 @@
-{
-  "description": "Known SSID prefixes for surveillance devices",
-  "ssid_prefixes": [
-    "flock-%"
-  ]
-}

@@ -92,14 +92,27 @@ def select_geographic_boundaries():
     Interactive geographic boundary selection using OSM data
     Returns bounding box coordinates for WiGLE API
     """
+    print("DEBUG MAIN: select_geographic_boundaries called - VERSION 2")  # ADD THIS LINE
     print("Loading country data from OpenStreetMap...")
     
-    # Step 1: Country Selection
+    # Supported countries (expand as we test more)
+    SUPPORTED_COUNTRIES = {'US': 'United States'}
+    
+    # Step 1: Country Selection - show only supported countries
     try:
-        countries = get_available_countries()
-        if not countries:
+        all_countries = get_available_countries()
+        if not all_countries:
             print("Error: Could not load country data")
             return None, None
+        
+        # Filter to only supported countries
+        countries = {code: name for code, name in all_countries.items() 
+                    if code in SUPPORTED_COUNTRIES}
+        
+        if not countries:
+            print("Error: No supported countries available")
+            return None, None
+            
     except Exception as e:
         print(f"Error loading countries: {e}")
         return None, None
@@ -107,16 +120,29 @@ def select_geographic_boundaries():
     country_menu = display_country_menu(countries)
     country_list = list(countries.items())
     
+    print(f"\nCurrently supported: {len(countries)} country")
+    print("Want support for your country?")
+    print("   * Submit a GitHub issue: https://github.com/PoppaShell/flockfinder/issues")
+    print("   * Contribute a pull request with OSM boundary research")
+    print("   * More countries coming in future updates!")
+    
     while True:
         try:
-            choice = int(input(f"\nSelect country (1-{len(countries)}) or 'q' to quit: ").strip())
+            choice_input = input(f"\nSelect country (1-{len(countries)}) or press Enter for US: ").strip()
+            
+            # Default to US if just Enter is pressed
+            if not choice_input:
+                selected_country_code, selected_country_name = 'US', 'United States'
+                break
+                
+            choice = int(choice_input)
             if 1 <= choice <= len(countries):
                 selected_country_code, selected_country_name = country_list[choice - 1]
                 break
             else:
                 print(f"Please enter a number between 1 and {len(countries)}")
         except ValueError:
-            print("Invalid input. Please enter a number or 'q' to quit")
+            print("Invalid input. Please enter a number or press Enter for US")
     
     print(f"\nSelected country: {selected_country_name}")
     
@@ -133,6 +159,12 @@ def select_geographic_boundaries():
     
     level_name = "States" if selected_country_code == "US" else "Provinces"
     admin_menu = display_admin_menu(admin_level_1, level_name)
+    #DEBUG CODE HERE:
+    print("DEBUG ADMIN_LEVEL_1: State data already loaded:")
+    for code, data in admin_level_1.items():
+        name = data.get('name', 'Unknown')
+        coord_count = len(data.get('coordinates', []))
+        print(f"  {code}: {name} - {coord_count} coordinates")
     admin_selections = get_user_selection(admin_menu, f"{level_name.lower()}")
     
     selected_admin_codes = []
@@ -151,8 +183,17 @@ def select_geographic_boundaries():
         all_boundaries = []
         for admin_code in selected_admin_codes:
             boundary_data = admin_level_1[admin_code]
+            print(f"DEBUG: Processing {admin_code}: {boundary_data.get('name')}")
+            print(f"DEBUG: Has coordinates: {'coordinates' in boundary_data}")
+            
             if 'coordinates' in boundary_data:
-                all_boundaries.extend(boundary_data['coordinates'])
+                coords = boundary_data['coordinates']
+                print(f"DEBUG: Coordinate count for {admin_code}: {len(coords)}")
+                all_boundaries.extend(coords)
+            else:
+                print(f"DEBUG: No coordinates found for {admin_code}")
+        
+        print(f"DEBUG: Total boundary coordinates: {len(all_boundaries)}")
         
         if not all_boundaries:
             print("Error: No boundary coordinates found")

@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flockfinder"
+version = "2.0.0"
+description = "ALPR surveillance camera detection using open source intelligence"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "FlockFinder Project"}
+]
+keywords = ["surveillance", "alpr", "camera", "detection", "osint"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: GIS"
+]
+requires-python = ">=3.7"
+dependencies = [
+    "requests>=2.25.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov",
+    "black",
+    "flake8",
+    "mypy"
+]
+
+[project.urls]
+Homepage = "https://github.com/PoppaShell/flockfinder"
+Repository = "https://github.com/PoppaShell/flockfinder"
+Issues = "https://github.com/PoppaShell/flockfinder/issues"
+
+[project.scripts]
+flockfinder = "src.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+src = ["py.typed"]
+
+[tool.black]
+line-length = 88
+target-version = ['py37']
+
+[tool.mypy]
+python_version = "3.7"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

@@ -1,5 +1,8 @@
 # Cache files
-#data/*
+data/
 
 # Output files
-#output/*
+output/
+
+# Python Cache
+__pycache__/
