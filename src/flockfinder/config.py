@@ -1,12 +1,22 @@
 """
 Configuration Management
 ========================
-Functions for loading and validating configuration files
+Functions for loading and validating configuration files with debug mode support
 """
 
 import json
 import os
 from typing import Dict, List, Optional
+
+
+# Debug mode configuration
+DEBUG_MODE = os.environ.get('FLOCKFINDER_DEBUG', '').lower() in ('1', 'true', 'yes')
+
+
+def debug_print(*args, **kwargs):
+    """Print debug message only if DEBUG_MODE is enabled"""
+    if DEBUG_MODE:
+        print("[DEBUG CONFIG]", *args, **kwargs)
 
 
 def get_config_path(filename: str) -> str:
@@ -24,18 +34,22 @@ def get_config_path(filename: str) -> str:
     
     # Look for config files in multiple locations
     config_paths = [
-        os.path.join(package_dir, '..', 'config', filename),  # Repository root config/
-        os.path.join('config', filename),                     # Current directory config/
-        filename                                              # Current directory
+        os.path.join(package_dir, '..', '..', 'config', filename),  # Repository root config/
+        os.path.join('config', filename),                          # Current directory config/
+        filename                                                   # Current directory
     ]
     
     for config_path in config_paths:
         normalized_path = os.path.normpath(config_path)
+        debug_print(f"Checking config path: {normalized_path}")
         if os.path.exists(normalized_path):
+            debug_print(f"Found config file: {normalized_path}")
             return normalized_path
     
     # Return the first path as default (repository root config)
-    return os.path.normpath(config_paths[0])
+    default_path = os.path.normpath(config_paths[0])
+    debug_print(f"Using default config path: {default_path}")
+    return default_path
 
 
 def get_data_path() -> str:
@@ -46,7 +60,7 @@ def get_data_path() -> str:
         str: Full path to data directory
     """
     package_dir = os.path.dirname(__file__)
-    data_path = os.path.join(package_dir, '..', 'data')
+    data_path = os.path.join(package_dir, '..', '..', 'data')
     return os.path.normpath(data_path)
 
 
@@ -61,6 +75,7 @@ def load_bssid_prefixes(filename: str = "known_bssid_prefixes.json") -> List[str
         list: List of BSSID prefixes or empty list if failed
     """
     config_path = get_config_path(filename)
+    debug_print(f"Loading BSSID prefixes from: {config_path}")
     
     try:
         if os.path.exists(config_path):
@@ -73,12 +88,13 @@ def load_bssid_prefixes(filename: str = "known_bssid_prefixes.json") -> List[str
                     print("The bssid_prefixes array is empty. Please add surveillance device BSSID prefixes.")
                     return []
                 
-                print(f"Loaded {len(bssid_list)} BSSID prefixes from {config_path}")
+                print(f"Loaded {len(bssid_list)} BSSID prefixes from configuration")
+                debug_print(f"BSSID prefixes: {bssid_list}")
                 return bssid_list
         else:
             print(f"Error: Configuration file not found: {config_path}")
             print("Please create the configuration file with known surveillance device BSSID prefixes")
-            print("Run 'python -m src.config' to check configuration status")
+            print("Run 'python -m flockfinder.config' to check configuration status")
             return []
             
     except json.JSONDecodeError as e:
@@ -100,6 +116,7 @@ def load_ssid_prefixes(filename: str = "known_ssid_prefixes.json") -> List[str]:
         list: List of SSID prefixes or empty list if failed
     """
     config_path = get_config_path(filename)
+    debug_print(f"Loading SSID prefixes from: {config_path}")
     
     try:
         if os.path.exists(config_path):
@@ -112,12 +129,13 @@ def load_ssid_prefixes(filename: str = "known_ssid_prefixes.json") -> List[str]:
                     print("The ssid_prefixes array is empty. Please add surveillance device SSID prefixes.")
                     return []
                 
-                print(f"Loaded {len(ssid_list)} SSID prefixes from {config_path}")
+                print(f"Loaded {len(ssid_list)} SSID prefixes from configuration")
+                debug_print(f"SSID prefixes: {ssid_list}")
                 return ssid_list
         else:
             print(f"Error: Configuration file not found: {config_path}")
             print("Please create the configuration file with known surveillance device SSID prefixes")
-            print("Run 'python -m src.config' to check configuration status")
+            print("Run 'python -m flockfinder.config' to check configuration status")
             return []
             
     except json.JSONDecodeError as e:
@@ -342,6 +360,7 @@ def check_dependencies() -> Dict[str, bool]:
     # Check BSSID configuration
     bssid_path = get_config_path("known_bssid_prefixes.json")
     dependencies['bssid_config_exists'] = os.path.exists(bssid_path)
+    debug_print(f"BSSID config exists: {dependencies['bssid_config_exists']} at {bssid_path}")
     
     if dependencies['bssid_config_exists']:
         bssid_prefixes = load_bssid_prefixes()
@@ -350,6 +369,7 @@ def check_dependencies() -> Dict[str, bool]:
     # Check SSID configuration
     ssid_path = get_config_path("known_ssid_prefixes.json")
     dependencies['ssid_config_exists'] = os.path.exists(ssid_path)
+    debug_print(f"SSID config exists: {dependencies['ssid_config_exists']} at {ssid_path}")
     
     if dependencies['ssid_config_exists']:
         ssid_prefixes = load_ssid_prefixes()
@@ -357,12 +377,15 @@ def check_dependencies() -> Dict[str, bool]:
     
     # Check output directory
     package_dir = os.path.dirname(__file__)
-    output_path = os.path.join(package_dir, '..', 'output')
-    dependencies['output_directory'] = os.path.exists(os.path.normpath(output_path))
+    output_path = os.path.join(package_dir, '..', '..', 'output')
+    normalized_output = os.path.normpath(output_path)
+    dependencies['output_directory'] = os.path.exists(normalized_output)
+    debug_print(f"Output directory exists: {dependencies['output_directory']} at {normalized_output}")
     
     # Check cache directory  
     cache_path = get_data_path()
     dependencies['cache_directory'] = os.path.exists(cache_path)
+    debug_print(f"Cache directory exists: {dependencies['cache_directory']} at {cache_path}")
     
     return dependencies
 
@@ -379,13 +402,14 @@ def setup_project_structure() -> bool:
         package_dir = os.path.dirname(__file__)
         directories = [
             get_data_path(),
-            os.path.normpath(os.path.join(package_dir, '..', 'output')),
+            os.path.normpath(os.path.join(package_dir, '..', '..', 'output')),
             os.path.dirname(get_config_path('dummy'))  # Config directory
         ]
         
         for directory in directories:
             os.makedirs(directory, exist_ok=True)
             print(f"Created directory: {directory}")
+            debug_print(f"Directory created/verified: {directory}")
         
         # Create template configuration files if they don't exist
         bssid_path = get_config_path("known_bssid_prefixes.json")
@@ -407,6 +431,7 @@ def setup_project_structure() -> bool:
         
     except Exception as e:
         print(f"Error setting up project structure: {e}")
+        debug_print(f"Setup error details: {e}", exc_info=True)
         return False
 
 
@@ -429,9 +454,11 @@ def get_configuration_summary() -> Dict:
         'ready_to_run': (len(bssid_prefixes) > 0 and 
                         len(ssid_prefixes) > 0 and 
                         dependencies['output_directory'] and 
-                        dependencies['cache_directory'])
+                        dependencies['cache_directory']),
+        'debug_mode': DEBUG_MODE
     }
     
+    debug_print(f"Configuration summary: {summary}")
     return summary
 
 
@@ -442,6 +469,7 @@ def print_configuration_status() -> None:
     
     print("\nFlockFinder Configuration Status:")
     print("=" * 40)
+    print(f"Debug mode: {'On' if summary['debug_mode'] else 'Off'} (FLOCKFINDER_DEBUG={os.environ.get('FLOCKFINDER_DEBUG', 'not set')})")
     print(f"BSSID config file exists: {'Yes' if deps['bssid_config_exists'] else 'No'}")
     print(f"BSSID config populated: {'Yes' if deps['bssid_config_populated'] else 'No'} ({summary['bssid_count']} prefixes)")
     print(f"SSID config file exists: {'Yes' if deps['ssid_config_exists'] else 'No'}")

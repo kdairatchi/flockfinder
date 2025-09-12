@@ -46,14 +46,14 @@ Repository = "https://github.com/PoppaShell/flockfinder"
 Issues = "https://github.com/PoppaShell/flockfinder/issues"
 
 [project.scripts]
-flockfinder = "src.main:main"
+flockfinder = "flockfinder.main:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["src*"]
+where = ["src"]
+include = ["flockfinder*"]
 
 [tool.setuptools.package-data]
-src = ["py.typed"]
+flockfinder = ["py.typed"]
 
 [tool.black]
 line-length = 88
