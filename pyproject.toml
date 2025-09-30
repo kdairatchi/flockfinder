@@ -41,9 +41,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/PoppaShell/flockfinder"
-Repository = "https://github.com/PoppaShell/flockfinder"
-Issues = "https://github.com/PoppaShell/flockfinder/issues"
+Homepage = "https://github.com/kdairatchi/flockfinder"
+Repository = "https://github.com/kdairatchi/flockfinder"
+Issues = "https://github.com/kdairatchi/flockfinder/issues"
 
 [project.scripts]
 flockfinder = "flockfinder.main:main"
